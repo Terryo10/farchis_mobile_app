@@ -43,7 +43,7 @@ class BookingRepository {
     List<String>? damagePhotos,
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'service_id': serviceId,
         'booking_date': bookingDate,
         'booking_time': bookingTime,

@@ -28,10 +28,9 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: BlocListener<AuthBloc, auth_state.AuthState>(
         listener: (context, state) {
-          if (state is auth_state.AuthAuthenticated) {
+          // Always go to home screen, regardless of auth state
+          if (state is auth_state.AuthAuthenticated || state is auth_state.AuthUnauthenticated) {
             context.go('/home');
-          } else if (state is auth_state.AuthUnauthenticated) {
-            context.go('/login');
           }
         },
         child: Center(

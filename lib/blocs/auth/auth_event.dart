@@ -84,3 +84,8 @@ class LogoutEvent extends AuthEvent {
 class CheckAuthStatusEvent extends AuthEvent {
   const CheckAuthStatusEvent();
 }
+
+/// Sign in with Google
+class GoogleSignInEvent extends AuthEvent {
+  const GoogleSignInEvent();
+}

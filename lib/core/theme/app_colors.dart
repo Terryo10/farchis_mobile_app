@@ -6,8 +6,8 @@ class AppColors {
   // Light Theme
   static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFF5F5F5);
-  static const Color lightPrimary = Color(0xFF1a1a2e);
-  static const Color lightAccent = Color(0xFFc9a84c);
+  static const Color lightPrimary = Color(0xFF1F315E);
+  static const Color lightAccent = Color(0xFF1F315E);
   static const Color lightError = Color(0xFFE53935);
   static const Color lightOnPrimary = Color(0xFFFFFFFF);
   static const Color lightTextPrimary = Color(0xFF1a1a2e);
@@ -20,10 +20,10 @@ class AppColors {
   static const Color lightInfo = Color(0xFF2196F3);
 
   // Dark Theme
-  static const Color darkBackground = Color(0xFF121212);
-  static const Color darkSurface = Color(0xFF1E1E1E);
-  static const Color darkPrimary = Color(0xFFc9a84c);
-  static const Color darkAccent = Color(0xFFc9a84c);
+  static const Color darkBackground = Color(0xFF0D1321); // Deep navy tinted background
+  static const Color darkSurface = Color(0xFF161F33);
+  static const Color darkPrimary = Color(0xFF425A8B); // Slightly lighter navy for dark mode contrast
+  static const Color darkAccent = Color(0xFF425A8B);
   static const Color darkError = Color(0xFFCF6679);
   static const Color darkOnPrimary = Color(0xFF121212);
   static const Color darkTextPrimary = Color(0xFFFFFFFF);

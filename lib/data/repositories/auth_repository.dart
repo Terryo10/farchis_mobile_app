@@ -9,6 +9,23 @@ class AuthRepository {
 
   AuthRepository({required this.apiClient});
 
+  /// Sign in with Google
+  Future<Result<UserModel>> googleSignIn({required String idToken}) async {
+    try {
+      final response = await apiClient.googleAuth({'id_token': idToken});
+      
+      if (response.containsKey('token')) {
+        return Result.success(UserModel.fromJson(response['user']));
+      } else {
+        return Result.failure(Failure.server('No token in response'));
+      }
+    } on DioException catch (e) {
+      return Result.failure(_mapDioException(e));
+    } catch (e) {
+      return Result.failure(Failure.unknown('Unexpected error: $e'));
+    }
+  }
+
   /// Send OTP to user's phone
   Future<Result<Map<String, dynamic>>> sendOtp({required String phone}) async {
     try {

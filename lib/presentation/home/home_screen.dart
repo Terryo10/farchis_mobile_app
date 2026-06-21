@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/theme/theme_cubit.dart';
+import '../../core/utils/auth_guard.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -45,7 +46,14 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 48),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                if (await requireAuth(context)) {
+                  // User is authenticated, proceed
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Authenticated! Proceeding...')),
+                  );
+                }
+              },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 child: Text('Get Started'),

@@ -21,6 +21,11 @@ class ApiClient {
   ApiClient({required this.dio});
 
   // Auth Endpoints
+  Future<Map<String, dynamic>> googleAuth(Map<String, dynamic> data) async {
+    final response = await dio.post(ApiConstants.authGoogle, data: data);
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> sendOtp(Map<String, dynamic> data) async {
     final response = await dio.post(ApiConstants.authSendOtp, data: data);
     return response.data;

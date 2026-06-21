@@ -143,3 +143,18 @@ class AuthError extends AuthState {
   @override
   List<Object?> get props => [failure];
 }
+
+/// Google Sign In Loading
+class GoogleSignInLoading extends AuthState {
+  const GoogleSignInLoading();
+}
+
+/// Google Sign In Failed
+class GoogleSignInFailed extends AuthState {
+  final Failure failure;
+
+  const GoogleSignInFailed(this.failure);
+
+  @override
+  List<Object?> get props => [failure];
+}

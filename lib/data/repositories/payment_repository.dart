@@ -16,7 +16,7 @@ class PaymentRepository {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'booking_id': bookingId,
         'amount': amount,
         'method': method,

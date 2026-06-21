@@ -39,7 +39,7 @@ class LoyaltyRepository {
     String? rewardId,
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'points': points,
       };
 

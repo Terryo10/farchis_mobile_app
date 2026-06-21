@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nested/nested.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../blocs/auth/auth_bloc.dart';
@@ -53,7 +54,7 @@ class DIContainer {
   void initialize() {
     _dioClient = DioClient();
     _secureStorage = const FlutterSecureStorage();
-    _apiClient = ApiClient(_dioClient.dio);
+    _apiClient = ApiClient(dio: _dioClient.dio);
 
     // Initialize repositories
     _authRepository = AuthRepository(apiClient: _apiClient);
@@ -91,38 +92,38 @@ class DIContainer {
   VehicleRepository get vehicleRepository => _vehicleRepository;
 
   // List of all repositories to be provided
-  List<RepositoryProvider> getRepositoryProviders() {
+  List<SingleChildWidget> getRepositoryProviders() {
     return [
-      RepositoryProvider(create: (_) => _authRepository),
-      RepositoryProvider(create: (_) => _serviceRepository),
-      RepositoryProvider(create: (_) => _bookingRepository),
-      RepositoryProvider(create: (_) => _paymentRepository),
-      RepositoryProvider(create: (_) => _loyaltyRepository),
-      RepositoryProvider(create: (_) => _scratchCardRepository),
-      RepositoryProvider(create: (_) => _galleryRepository),
-      RepositoryProvider(create: (_) => _articleRepository),
-      RepositoryProvider(create: (_) => _promotionRepository),
-      RepositoryProvider(create: (_) => _referralRepository),
-      RepositoryProvider(create: (_) => _notificationRepository),
-      RepositoryProvider(create: (_) => _reviewRepository),
-      RepositoryProvider(create: (_) => _vehicleRepository),
+      RepositoryProvider<AuthRepository>(create: (_) => _authRepository),
+      RepositoryProvider<ServiceRepository>(create: (_) => _serviceRepository),
+      RepositoryProvider<BookingRepository>(create: (_) => _bookingRepository),
+      RepositoryProvider<PaymentRepository>(create: (_) => _paymentRepository),
+      RepositoryProvider<LoyaltyRepository>(create: (_) => _loyaltyRepository),
+      RepositoryProvider<ScratchCardRepository>(create: (_) => _scratchCardRepository),
+      RepositoryProvider<GalleryRepository>(create: (_) => _galleryRepository),
+      RepositoryProvider<ArticleRepository>(create: (_) => _articleRepository),
+      RepositoryProvider<PromotionRepository>(create: (_) => _promotionRepository),
+      RepositoryProvider<ReferralRepository>(create: (_) => _referralRepository),
+      RepositoryProvider<NotificationRepository>(create: (_) => _notificationRepository),
+      RepositoryProvider<ReviewRepository>(create: (_) => _reviewRepository),
+      RepositoryProvider<VehicleRepository>(create: (_) => _vehicleRepository),
     ];
   }
 
   // List of all BLoCs to be provided
-  List<BlocProvider> getBlocProviders() {
+  List<SingleChildWidget> getBlocProviders() {
     return [
-      BlocProvider(create: (_) => ThemeCubit()),
-      BlocProvider(
+      BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
+      BlocProvider<AuthBloc>(
         create: (_) => AuthBloc(
           authRepository: _authRepository,
           dioClient: _dioClient,
           secureStorage: _secureStorage,
         ),
       ),
-      BlocProvider(create: (_) => ServicesBloc(serviceRepository: _serviceRepository)),
-      BlocProvider(create: (_) => BookingBloc(bookingRepository: _bookingRepository)),
-      BlocProvider(create: (_) => LoyaltyBloc(loyaltyRepository: _loyaltyRepository)),
+      BlocProvider<ServicesBloc>(create: (_) => ServicesBloc(serviceRepository: _serviceRepository)),
+      BlocProvider<BookingBloc>(create: (_) => BookingBloc(bookingRepository: _bookingRepository)),
+      BlocProvider<LoyaltyBloc>(create: (_) => LoyaltyBloc(loyaltyRepository: _loyaltyRepository)),
     ];
   }
 }

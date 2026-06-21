@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 sealed class Failure extends Equatable {
   const Failure();
 
+  String get message;
+
   @override
   List<Object?> get props => [];
 
@@ -43,6 +45,9 @@ class ValidationFailure extends Failure {
   final Map<String, String> errors;
 
   const ValidationFailure(this.errors);
+
+  @override
+  String get message => errors.values.join('\n');
 
   @override
   List<Object?> get props => [errors];

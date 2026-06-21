@@ -1,12 +1,16 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'package:google_sign_in/google_sign_in.dart';
+
+import '../../core/error/failures.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 /// AuthBloc manages the authentication state and user profile
+/// - Handles Google Sign-In flow
 /// - Handles OTP send/verify flow
 /// - Manages authentication tokens in secure storage
 /// - Manages user profile updates
@@ -14,12 +18,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
   final DioClient dioClient;
   final FlutterSecureStorage secureStorage;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
 
   AuthBloc({
     required this.authRepository,
     required this.dioClient,
     required this.secureStorage,
   }) : super(const AuthInitial()) {
+    on<GoogleSignInEvent>(_onGoogleSignIn);
     on<SendOtpEvent>(_onSendOtp);
     on<VerifyOtpEvent>(_onVerifyOtp);
     on<GetProfileEvent>(_onGetProfile);
@@ -27,6 +35,47 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateFcmTokenEvent>(_onUpdateFcmToken);
     on<LogoutEvent>(_onLogout);
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
+  }
+
+  /// Handle Google Sign In
+  Future<void> _onGoogleSignIn(GoogleSignInEvent event, Emitter<AuthState> emit) async {
+    emit(const GoogleSignInLoading());
+
+    try {
+      // Force sign out first so the account picker always shows
+      await _googleSignIn.signOut();
+      
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      
+      if (account == null) {
+        // User cancelled
+        emit(const AuthUnauthenticated());
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await account.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        emit(GoogleSignInFailed(Failure.server('No ID token from Google')));
+        return;
+      }
+
+      final result = await authRepository.googleSignIn(idToken: idToken);
+
+      await result.when(
+        onSuccess: (user) async {
+          // Token is assumed to be stored in the response
+          await dioClient.setToken('token_${user.id}');
+          emit(AuthAuthenticated(user));
+        },
+        onFailure: (failure) {
+          emit(GoogleSignInFailed(failure));
+        },
+      );
+    } catch (e) {
+      emit(GoogleSignInFailed(Failure.unknown(e.toString())));
+    }
   }
 
   /// Handle send OTP event
