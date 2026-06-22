@@ -1,22 +1,61 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'referral_model.freezed.dart';
 part 'referral_model.g.dart';
 
-@freezed
-class ReferralModel with _$ReferralModel, EquatableMixin {
-  const ReferralModel._();
+@JsonSerializable(explicitToJson: true)
+class ReferredUserModel {
+  final int id;
+  final String name;
+  final DateTime joinedAt;
 
-  const factory ReferralModel({
-    @JsonKey(name: 'referral_code') required String referralCode,
-    @JsonKey(name: 'total_referrals') @Default(0) int totalReferrals,
-    @JsonKey(name: 'referred_users') @Default([]) List<dynamic> referredUsers,
-  }) = _ReferralModel;
+  const ReferredUserModel({
+    required this.id,
+    required this.name,
+    required this.joinedAt,
+  });
 
-  factory ReferralModel.fromJson(Map<String, dynamic> json) =>
-      _$ReferralModelFromJson(json);
+  factory ReferredUserModel.fromJson(Map<String, dynamic> json) => _$ReferredUserModelFromJson(json);
 
-  @override
-  List<Object?> get props => [referralCode, totalReferrals];
+  Map<String, dynamic> toJson() => _$ReferredUserModelToJson(this);
+
+  ReferredUserModel copyWith({
+    int? id,
+    String? name,
+    DateTime? joinedAt,
+  }) {
+    return ReferredUserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      joinedAt: joinedAt ?? this.joinedAt,
+    );
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class ReferralModel {
+  final String referralCode;
+  final List<ReferredUserModel> referredUsers;
+  final int totalReferrals;
+
+  const ReferralModel({
+    required this.referralCode,
+    required this.referredUsers,
+    required this.totalReferrals,
+  });
+
+  factory ReferralModel.fromJson(Map<String, dynamic> json) => _$ReferralModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ReferralModelToJson(this);
+
+  ReferralModel copyWith({
+    String? referralCode,
+    List<ReferredUserModel>? referredUsers,
+    int? totalReferrals,
+  }) {
+    return ReferralModel(
+      referralCode: referralCode ?? this.referralCode,
+      referredUsers: referredUsers ?? this.referredUsers,
+      totalReferrals: totalReferrals ?? this.totalReferrals,
+    );
+  }
 }

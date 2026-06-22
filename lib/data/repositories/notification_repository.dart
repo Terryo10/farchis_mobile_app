@@ -1,65 +1,55 @@
-import 'package:dio/dio.dart';
-
+import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
-import '../../core/network/api_client.dart';
+import '../../core/network/http_client.dart';
 import '../models/notification_model.dart';
 
 class NotificationRepository {
-  final ApiClient apiClient;
+  final FarchisHttpClient client;
 
-  NotificationRepository({required this.apiClient});
+  NotificationRepository(this.client);
 
-  /// Get all notifications
   Future<Result<List<NotificationModel>>> getNotifications() async {
     try {
-      final notifications = await apiClient.getNotifications();
-      return Result.success(notifications);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get(ApiConstants.notifications);
+      final data = response['data'] as List;
+      return Result.success(data.map((e) => NotificationModel.fromJson(e)).toList());
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Mark notification as read
-  Future<Result<void>> markNotificationRead(String id) async {
+  Future<Result<bool>> markAsRead(String id) async {
     try {
-      await apiClient.markNotificationRead(id);
-      return Result.success(null);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      await client.patch(ApiConstants.markNotificationRead(id));
+      return Result.success(true);
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Mark all notifications as read
-  Future<Result<void>> markAllNotificationsRead() async {
+  Future<Result<bool>> markAllAsRead() async {
     try {
-      await apiClient.markAllNotificationsRead();
-      return Result.success(null);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      await client.patch(ApiConstants.markAllNotificationsRead);
+      return Result.success(true);
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  Failure _mapDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return Failure.network('Connection timeout');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            e.response?.data['message'] ?? 'Server error: $statusCode';
-        return Failure.server(message);
-      case DioExceptionType.cancel:
-        return Failure.network('Request cancelled');
-      default:
-        return Failure.network('Network error: ${e.message}');
+  FailureResult<T> _handleError<T>(Object e) {
+    if (e is ValidationException) {
+      final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
+      return Result.failure(Failure.validation(errors)) as FailureResult<T>;
+    } else if (e is UnauthorizedException) {
+      return Result.failure(Failure.unauthorized(e.message)) as FailureResult<T>;
+    } else if (e is NetworkException) {
+      return Result.failure(Failure.network(e.message)) as FailureResult<T>;
+    } else if (e is NotFoundException) {
+      return Result.failure(Failure.notFound(e.message)) as FailureResult<T>;
+    } else if (e is ServerException) {
+      return Result.failure(Failure.server(e.message, statusCode: e.statusCode)) as FailureResult<T>;
     }
+    return Result.failure(Failure.unknown(e.toString())) as FailureResult<T>;
   }
 }

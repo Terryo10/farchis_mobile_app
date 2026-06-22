@@ -1,26 +1,47 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'promotion_model.freezed.dart';
 part 'promotion_model.g.dart';
 
-@freezed
-class PromotionModel with _$PromotionModel, EquatableMixin {
-  const PromotionModel._();
+@JsonEnum(fieldRename: FieldRename.snake)
+enum PromotionType { push_blast, in_app }
 
-  const factory PromotionModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'title') required String title,
-    @JsonKey(name: 'body') String? body,
-    @JsonKey(name: 'image') String? image,
-    @JsonKey(name: 'type') String? type,
-    @JsonKey(name: 'is_active') @Default(true) bool isActive,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _PromotionModel;
+@JsonSerializable(explicitToJson: true)
+class PromotionModel {
+  final int id;
+  final String title;
+  final String body;
+  final String? imageUrl;
+  final PromotionType type;
+  final bool isActive;
 
-  factory PromotionModel.fromJson(Map<String, dynamic> json) =>
-      _$PromotionModelFromJson(json);
+  const PromotionModel({
+    required this.id,
+    required this.title,
+    required this.body,
+    this.imageUrl,
+    required this.type,
+    required this.isActive,
+  });
 
-  @override
-  List<Object?> get props => [id, title];
+  factory PromotionModel.fromJson(Map<String, dynamic> json) => _$PromotionModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PromotionModelToJson(this);
+
+  PromotionModel copyWith({
+    int? id,
+    String? title,
+    String? body,
+    String? imageUrl,
+    PromotionType? type,
+    bool? isActive,
+  }) {
+    return PromotionModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      imageUrl: imageUrl ?? this.imageUrl,
+      type: type ?? this.type,
+      isActive: isActive ?? this.isActive,
+    );
+  }
 }

@@ -1,24 +1,40 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'leaderboard_entry_model.freezed.dart';
 part 'leaderboard_entry_model.g.dart';
 
-@freezed
-class LeaderboardEntryModel with _$LeaderboardEntryModel, EquatableMixin {
-  const LeaderboardEntryModel._();
+@JsonSerializable(explicitToJson: true)
+class LeaderboardEntryModel {
+  final int rank;
+  final int userId;
+  final String name;
+  final String? avatarUrl;
+  final int referralCount;
 
-  const factory LeaderboardEntryModel({
-    @JsonKey(name: 'rank') required int rank,
-    @JsonKey(name: 'user_id') required String userId,
-    @JsonKey(name: 'name') required String name,
-    @JsonKey(name: 'avatar') String? avatar,
-    @JsonKey(name: 'referral_count') @Default(0) int referralCount,
-  }) = _LeaderboardEntryModel;
+  const LeaderboardEntryModel({
+    required this.rank,
+    required this.userId,
+    required this.name,
+    this.avatarUrl,
+    required this.referralCount,
+  });
 
-  factory LeaderboardEntryModel.fromJson(Map<String, dynamic> json) =>
-      _$LeaderboardEntryModelFromJson(json);
+  factory LeaderboardEntryModel.fromJson(Map<String, dynamic> json) => _$LeaderboardEntryModelFromJson(json);
 
-  @override
-  List<Object?> get props => [rank, userId];
+  Map<String, dynamic> toJson() => _$LeaderboardEntryModelToJson(this);
+
+  LeaderboardEntryModel copyWith({
+    int? rank,
+    int? userId,
+    String? name,
+    String? avatarUrl,
+    int? referralCount,
+  }) {
+    return LeaderboardEntryModel(
+      rank: rank ?? this.rank,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      referralCount: referralCount ?? this.referralCount,
+    );
+  }
 }

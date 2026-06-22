@@ -1,26 +1,44 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'gallery_item_model.freezed.dart';
 part 'gallery_item_model.g.dart';
 
-@freezed
-class GalleryItemModel with _$GalleryItemModel, EquatableMixin {
-  const GalleryItemModel._();
+@JsonSerializable(explicitToJson: true)
+class GalleryItemModel {
+  final int id;
+  final int bookingId;
+  final String beforeImageUrl;
+  final String afterImageUrl;
+  final String? caption;
+  final bool isPublic;
 
-  const factory GalleryItemModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'booking_id') required String bookingId,
-    @JsonKey(name: 'before_image') String? beforeImage,
-    @JsonKey(name: 'after_image') String? afterImage,
-    @JsonKey(name: 'caption') String? caption,
-    @JsonKey(name: 'is_public') @Default(false) bool isPublic,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _GalleryItemModel;
+  const GalleryItemModel({
+    required this.id,
+    required this.bookingId,
+    required this.beforeImageUrl,
+    required this.afterImageUrl,
+    this.caption,
+    required this.isPublic,
+  });
 
-  factory GalleryItemModel.fromJson(Map<String, dynamic> json) =>
-      _$GalleryItemModelFromJson(json);
+  factory GalleryItemModel.fromJson(Map<String, dynamic> json) => _$GalleryItemModelFromJson(json);
 
-  @override
-  List<Object?> get props => [id, bookingId];
+  Map<String, dynamic> toJson() => _$GalleryItemModelToJson(this);
+
+  GalleryItemModel copyWith({
+    int? id,
+    int? bookingId,
+    String? beforeImageUrl,
+    String? afterImageUrl,
+    String? caption,
+    bool? isPublic,
+  }) {
+    return GalleryItemModel(
+      id: id ?? this.id,
+      bookingId: bookingId ?? this.bookingId,
+      beforeImageUrl: beforeImageUrl ?? this.beforeImageUrl,
+      afterImageUrl: afterImageUrl ?? this.afterImageUrl,
+      caption: caption ?? this.caption,
+      isPublic: isPublic ?? this.isPublic,
+    );
+  }
 }

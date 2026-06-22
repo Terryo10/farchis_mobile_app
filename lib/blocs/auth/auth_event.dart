@@ -7,85 +7,43 @@ sealed class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Send OTP to phone number
-class SendOtpEvent extends AuthEvent {
-  final String phone;
+class AuthCheckRequested extends AuthEvent {}
 
-  const SendOtpEvent(this.phone);
+class LoginRequested extends AuthEvent {
+  final String email;
+  final String password;
 
-  @override
-  List<Object?> get props => [phone];
-}
-
-/// Verify OTP and authenticate
-class VerifyOtpEvent extends AuthEvent {
-  final String phone;
-  final String otp;
-
-  const VerifyOtpEvent({required this.phone, required this.otp});
+  const LoginRequested({required this.email, required this.password});
 
   @override
-  List<Object?> get props => [phone, otp];
+  List<Object?> get props => [email, password];
 }
 
-/// Get current user profile
-class GetProfileEvent extends AuthEvent {
-  const GetProfileEvent();
-}
-
-/// Update user profile
-class UpdateProfileEvent extends AuthEvent {
+class RegisterRequested extends AuthEvent {
   final String name;
-  final String? email;
-  final String? phone;
-  final String? vehicleMake;
-  final String? vehicleModel;
-  final int? vehicleYear;
-  final String? vehiclePlate;
+  final String email;
+  final String password;
+  final String phone;
 
-  const UpdateProfileEvent({
+  const RegisterRequested({
     required this.name,
-    this.email,
-    this.phone,
-    this.vehicleMake,
-    this.vehicleModel,
-    this.vehicleYear,
-    this.vehiclePlate,
+    required this.email,
+    required this.password,
+    required this.phone,
   });
 
   @override
-  List<Object?> get props => [
-        name,
-        email,
-        phone,
-        vehicleMake,
-        vehicleModel,
-        vehicleYear,
-        vehiclePlate,
-      ];
+  List<Object?> get props => [name, email, password, phone];
 }
 
-/// Update FCM token
+class GoogleSignInRequested extends AuthEvent {}
+
 class UpdateFcmTokenEvent extends AuthEvent {
   final String token;
-
-  const UpdateFcmTokenEvent(this.token);
+  const UpdateFcmTokenEvent({required this.token});
 
   @override
   List<Object?> get props => [token];
 }
 
-/// Logout user
-class LogoutEvent extends AuthEvent {
-  const LogoutEvent();
-}
-
-/// Check authentication status
-class CheckAuthStatusEvent extends AuthEvent {
-  const CheckAuthStatusEvent();
-}
-
-/// Sign in with Google
-class GoogleSignInEvent extends AuthEvent {
-  const GoogleSignInEvent();
-}
+class LogoutRequested extends AuthEvent {}

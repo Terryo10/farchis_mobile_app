@@ -21,8 +21,8 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
   ) async {
     emit(const LoyaltyLoading());
 
-    final walletResult = await loyaltyRepository.getLoyaltyWallet();
-    final transactionsResult = await loyaltyRepository.getLoyaltyTransactions();
+    final walletResult = await loyaltyRepository.getWallet();
+    final transactionsResult = await loyaltyRepository.getTransactions();
 
     walletResult.when(
       onSuccess: (wallet) {
@@ -45,7 +45,7 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
     GetLoyaltyTransactionsEvent event,
     Emitter<LoyaltyState> emit,
   ) async {
-    final result = await loyaltyRepository.getLoyaltyTransactions();
+    final result = await loyaltyRepository.getTransactions();
 
     result.when(
       onSuccess: (transactions) {

@@ -6,16 +6,32 @@ part of 'referral_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ReferralModelImpl _$$ReferralModelImplFromJson(Map<String, dynamic> json) =>
-    _$ReferralModelImpl(
-      referralCode: json['referral_code'] as String,
-      totalReferrals: (json['total_referrals'] as num?)?.toInt() ?? 0,
-      referredUsers: json['referred_users'] as List<dynamic>? ?? const [],
+ReferredUserModel _$ReferredUserModelFromJson(Map<String, dynamic> json) =>
+    ReferredUserModel(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      joinedAt: DateTime.parse(json['joinedAt'] as String),
     );
 
-Map<String, dynamic> _$$ReferralModelImplToJson(_$ReferralModelImpl instance) =>
+Map<String, dynamic> _$ReferredUserModelToJson(ReferredUserModel instance) =>
     <String, dynamic>{
-      'referral_code': instance.referralCode,
-      'total_referrals': instance.totalReferrals,
-      'referred_users': instance.referredUsers,
+      'id': instance.id,
+      'name': instance.name,
+      'joinedAt': instance.joinedAt.toIso8601String(),
+    };
+
+ReferralModel _$ReferralModelFromJson(Map<String, dynamic> json) =>
+    ReferralModel(
+      referralCode: json['referralCode'] as String,
+      referredUsers: (json['referredUsers'] as List<dynamic>)
+          .map((e) => ReferredUserModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      totalReferrals: (json['totalReferrals'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$ReferralModelToJson(ReferralModel instance) =>
+    <String, dynamic>{
+      'referralCode': instance.referralCode,
+      'referredUsers': instance.referredUsers.map((e) => e.toJson()).toList(),
+      'totalReferrals': instance.totalReferrals,
     };

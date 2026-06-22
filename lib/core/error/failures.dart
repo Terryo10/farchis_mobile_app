@@ -23,6 +23,7 @@ sealed class Failure extends Equatable {
 }
 
 class NetworkFailure extends Failure {
+  @override
   final String message;
 
   const NetworkFailure(this.message);
@@ -32,6 +33,7 @@ class NetworkFailure extends Failure {
 }
 
 class ServerFailure extends Failure {
+  @override
   final String message;
   final int? statusCode;
 
@@ -54,6 +56,7 @@ class ValidationFailure extends Failure {
 }
 
 class CacheFailure extends Failure {
+  @override
   final String message;
 
   const CacheFailure(this.message);
@@ -63,6 +66,7 @@ class CacheFailure extends Failure {
 }
 
 class UnauthorizedFailure extends Failure {
+  @override
   final String message;
 
   const UnauthorizedFailure(this.message);
@@ -72,6 +76,7 @@ class UnauthorizedFailure extends Failure {
 }
 
 class ForbiddenFailure extends Failure {
+  @override
   final String message;
 
   const ForbiddenFailure(this.message);
@@ -81,6 +86,7 @@ class ForbiddenFailure extends Failure {
 }
 
 class NotFoundFailure extends Failure {
+  @override
   final String message;
 
   const NotFoundFailure(this.message);
@@ -90,6 +96,7 @@ class NotFoundFailure extends Failure {
 }
 
 class ConflictFailure extends Failure {
+  @override
   final String message;
 
   const ConflictFailure(this.message);
@@ -99,6 +106,7 @@ class ConflictFailure extends Failure {
 }
 
 class TimeoutFailure extends Failure {
+  @override
   final String message;
 
   const TimeoutFailure(this.message);
@@ -108,6 +116,7 @@ class TimeoutFailure extends Failure {
 }
 
 class UnknownFailure extends Failure {
+  @override
   final String message;
 
   const UnknownFailure(this.message);

@@ -1,82 +1,59 @@
-import 'package:dio/dio.dart';
-
+import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
-import '../../core/network/api_client.dart';
+import '../../core/network/http_client.dart';
 import '../models/loyalty_wallet_model.dart';
+import '../models/loyalty_transaction_model.dart';
 
 class LoyaltyRepository {
-  final ApiClient apiClient;
+  final FarchisHttpClient client;
 
-  LoyaltyRepository({required this.apiClient});
+  LoyaltyRepository(this.client);
 
-  /// Get loyalty wallet
-  Future<Result<LoyaltyWalletModel>> getLoyaltyWallet() async {
+  Future<Result<LoyaltyWalletModel>> getWallet() async {
     try {
-      final wallet = await apiClient.getLoyaltyWallet();
-      return Result.success(wallet);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get(ApiConstants.loyaltyWallet);
+      return Result.success(LoyaltyWalletModel.fromJson(response['data']));
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Get loyalty transactions
-  Future<Result<List<Map<String, dynamic>>>> getLoyaltyTransactions() async {
+  Future<Result<List<LoyaltyTransactionModel>>> getTransactions() async {
     try {
-      final transactions = await apiClient.getLoyaltyTransactions();
-      return Result.success(transactions);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get(ApiConstants.loyaltyTransactions);
+      final data = response['data'] as List;
+      return Result.success(data.map((e) => LoyaltyTransactionModel.fromJson(e)).toList());
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Redeem loyalty points
-  Future<Result<Map<String, dynamic>>> redeemPoints({
-    required int points,
-    String? rewardId,
-  }) async {
+  Future<Result<bool>> redeemPoints({required int points, required String? rewardId}) async {
     try {
-      final data = <String, dynamic>{
-        'points': points,
-      };
-
-      if (rewardId != null) {
-        data['reward_id'] = rewardId;
-      }
-
-      final response = await apiClient.redeemPoints(data);
-      return Result.success(response);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      await client.post(
+        ApiConstants.loyaltyRedeem,
+        body: {'points': points, 'reward_id': rewardId},
+      );
+      return Result.success(true);
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  Failure _mapDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return Failure.network('Connection timeout');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            e.response?.data['message'] ?? 'Server error: $statusCode';
-        if (statusCode == 422) {
-          final errors = e.response?.data['errors'] ?? {};
-          return Failure.validation(Map<String, String>.from(errors));
-        } else if (statusCode >= 500) {
-          return Failure.server(message);
-        }
-        return Failure.server(message);
-      case DioExceptionType.cancel:
-        return Failure.network('Request cancelled');
-      default:
-        return Failure.network('Network error: ${e.message}');
+  FailureResult<T> _handleError<T>(Object e) {
+    if (e is ValidationException) {
+      final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
+      return Result.failure(Failure.validation(errors)) as FailureResult<T>;
+    } else if (e is UnauthorizedException) {
+      return Result.failure(Failure.unauthorized(e.message)) as FailureResult<T>;
+    } else if (e is NetworkException) {
+      return Result.failure(Failure.network(e.message)) as FailureResult<T>;
+    } else if (e is NotFoundException) {
+      return Result.failure(Failure.notFound(e.message)) as FailureResult<T>;
+    } else if (e is ServerException) {
+      return Result.failure(Failure.server(e.message, statusCode: e.statusCode)) as FailureResult<T>;
     }
+    return Result.failure(Failure.unknown(e.toString())) as FailureResult<T>;
   }
 }

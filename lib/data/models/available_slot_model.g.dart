@@ -6,15 +6,14 @@ part of 'available_slot_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$AvailableSlotModelImpl _$$AvailableSlotModelImplFromJson(
-  Map<String, dynamic> json,
-) => _$AvailableSlotModelImpl(
-  date: json['date'] as String,
-  slots:
-      (json['slots'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-);
+AvailableSlotModel _$AvailableSlotModelFromJson(Map<String, dynamic> json) =>
+    AvailableSlotModel(
+      date: DateTime.parse(json['date'] as String),
+      slots: (json['slots'] as List<dynamic>).map((e) => e as String).toList(),
+    );
 
-Map<String, dynamic> _$$AvailableSlotModelImplToJson(
-  _$AvailableSlotModelImpl instance,
-) => <String, dynamic>{'date': instance.date, 'slots': instance.slots};
+Map<String, dynamic> _$AvailableSlotModelToJson(AvailableSlotModel instance) =>
+    <String, dynamic>{
+      'date': instance.date.toIso8601String(),
+      'slots': instance.slots,
+    };

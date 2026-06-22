@@ -1,35 +1,33 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-part 'theme_state.dart';
+class ThemeCubit extends Cubit<ThemeMode> {
+  final SharedPreferences prefs;
 
-class ThemeCubit extends Cubit<ThemeState> {
-  static const String _themeKey = 'theme_mode';
+  ThemeCubit(this.prefs) : super(_getInitialTheme(prefs));
 
-  ThemeCubit() : super(const ThemeLightState()) {
-    _loadTheme();
-  }
-
-  Future<void> _loadTheme() async {
+  static ThemeMode _getInitialTheme(SharedPreferences prefs) {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final isDark = prefs.getBool(_themeKey) ?? false;
-      emit(isDark ? const ThemeDarkState() : const ThemeLightState());
-    } catch (e) {
-      emit(const ThemeLightState());
-    }
+      final themeValue = prefs.get('theme_mode');
+      if (themeValue is String) {
+        if (themeValue == 'light') return ThemeMode.light;
+        if (themeValue == 'dark') return ThemeMode.dark;
+      } else if (themeValue is bool) {
+        return themeValue ? ThemeMode.dark : ThemeMode.light;
+      }
+    } catch (_) {}
+    return ThemeMode.system;
   }
 
-  Future<void> toggleTheme() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final isDark = state is ThemeDarkState;
-      await prefs.setBool(_themeKey, !isDark);
-      emit(!isDark ? const ThemeDarkState() : const ThemeLightState());
-    } catch (e) {
-      // Handle error silently
-    }
+  void toggleTheme() {
+    final newMode = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    prefs.setString('theme_mode', newMode.name);
+    emit(newMode);
   }
 
-  bool get isDarkMode => state is ThemeDarkState;
+  void setTheme(ThemeMode mode) {
+    prefs.setString('theme_mode', mode.name);
+    emit(mode);
+  }
 }
