@@ -1,25 +1,44 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'review_model.freezed.dart';
 part 'review_model.g.dart';
 
-@freezed
-class ReviewModel with _$ReviewModel, EquatableMixin {
-  const ReviewModel._();
+@JsonSerializable(explicitToJson: true)
+class ReviewModel {
+  final int id;
+  final int bookingId;
+  final int rating;
+  final String? comment;
+  final bool isApproved;
+  final DateTime createdAt;
 
-  const factory ReviewModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'booking_id') required String bookingId,
-    @JsonKey(name: 'rating') required int rating,
-    @JsonKey(name: 'comment') String? comment,
-    @JsonKey(name: 'is_approved') @Default(false) bool isApproved,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _ReviewModel;
+  const ReviewModel({
+    required this.id,
+    required this.bookingId,
+    required this.rating,
+    this.comment,
+    required this.isApproved,
+    required this.createdAt,
+  });
 
-  factory ReviewModel.fromJson(Map<String, dynamic> json) =>
-      _$ReviewModelFromJson(json);
+  factory ReviewModel.fromJson(Map<String, dynamic> json) => _$ReviewModelFromJson(json);
 
-  @override
-  List<Object?> get props => [id, bookingId, rating];
+  Map<String, dynamic> toJson() => _$ReviewModelToJson(this);
+
+  ReviewModel copyWith({
+    int? id,
+    int? bookingId,
+    int? rating,
+    String? comment,
+    bool? isApproved,
+    DateTime? createdAt,
+  }) {
+    return ReviewModel(
+      id: id ?? this.id,
+      bookingId: bookingId ?? this.bookingId,
+      rating: rating ?? this.rating,
+      comment: comment ?? this.comment,
+      isApproved: isApproved ?? this.isApproved,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

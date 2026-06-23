@@ -1,26 +1,48 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'notification_model.freezed.dart';
 part 'notification_model.g.dart';
 
-@freezed
-class NotificationModel with _$NotificationModel, EquatableMixin {
-  const NotificationModel._();
+@JsonSerializable(explicitToJson: true)
+class NotificationModel {
+  final int id;
+  final String title;
+  final String body;
+  final String type;
+  final bool isRead;
+  final DateTime createdAt;
+  final Map<String, dynamic> data;
 
-  const factory NotificationModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'title') required String title,
-    @JsonKey(name: 'body') required String body,
-    @JsonKey(name: 'type') String? type,
-    @JsonKey(name: 'is_read') @Default(false) bool isRead,
-    @JsonKey(name: 'data') Map<String, dynamic>? data,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _NotificationModel;
+  const NotificationModel({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.type,
+    required this.isRead,
+    required this.createdAt,
+    required this.data,
+  });
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) =>
-      _$NotificationModelFromJson(json);
+  factory NotificationModel.fromJson(Map<String, dynamic> json) => _$NotificationModelFromJson(json);
 
-  @override
-  List<Object?> get props => [id, title, type];
+  Map<String, dynamic> toJson() => _$NotificationModelToJson(this);
+
+  NotificationModel copyWith({
+    int? id,
+    String? title,
+    String? body,
+    String? type,
+    bool? isRead,
+    DateTime? createdAt,
+    Map<String, dynamic>? data,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      type: type ?? this.type,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
+      data: data ?? this.data,
+    );
+  }
 }

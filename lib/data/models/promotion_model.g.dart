@@ -6,25 +6,27 @@ part of 'promotion_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$PromotionModelImpl _$$PromotionModelImplFromJson(Map<String, dynamic> json) =>
-    _$PromotionModelImpl(
-      id: json['id'] as String,
+PromotionModel _$PromotionModelFromJson(Map<String, dynamic> json) =>
+    PromotionModel(
+      id: (json['id'] as num).toInt(),
       title: json['title'] as String,
-      body: json['body'] as String?,
-      image: json['image'] as String?,
-      type: json['type'] as String?,
-      isActive: json['is_active'] as bool? ?? true,
-      createdAt: json['created_at'] as String?,
+      body: json['body'] as String,
+      imageUrl: json['imageUrl'] as String?,
+      type: $enumDecode(_$PromotionTypeEnumMap, json['type']),
+      isActive: json['isActive'] as bool,
     );
 
-Map<String, dynamic> _$$PromotionModelImplToJson(
-  _$PromotionModelImpl instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'title': instance.title,
-  'body': instance.body,
-  'image': instance.image,
-  'type': instance.type,
-  'is_active': instance.isActive,
-  'created_at': instance.createdAt,
+Map<String, dynamic> _$PromotionModelToJson(PromotionModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'body': instance.body,
+      'imageUrl': instance.imageUrl,
+      'type': _$PromotionTypeEnumMap[instance.type]!,
+      'isActive': instance.isActive,
+    };
+
+const _$PromotionTypeEnumMap = {
+  PromotionType.push_blast: 'push_blast',
+  PromotionType.in_app: 'in_app',
 };

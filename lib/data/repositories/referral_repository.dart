@@ -1,41 +1,47 @@
-import 'package:dio/dio.dart';
-
+import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
-import '../../core/network/api_client.dart';
+import '../../core/network/http_client.dart';
 import '../models/referral_model.dart';
+import '../models/leaderboard_entry_model.dart';
 
 class ReferralRepository {
-  final ApiClient apiClient;
+  final FarchisHttpClient client;
 
-  ReferralRepository({required this.apiClient});
+  ReferralRepository(this.client);
 
-  /// Get referral information
-  Future<Result<ReferralModel>> getReferrals() async {
+  Future<Result<ReferralModel>> getReferralStats() async {
     try {
-      final referral = await apiClient.getReferrals();
-      return Result.success(referral);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get(ApiConstants.referrals);
+      return Result.success(ReferralModel.fromJson(response['data']));
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  Failure _mapDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return Failure.network('Connection timeout');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            e.response?.data['message'] ?? 'Server error: $statusCode';
-        return Failure.server(message);
-      case DioExceptionType.cancel:
-        return Failure.network('Request cancelled');
-      default:
-        return Failure.network('Network error: ${e.message}');
+  Future<Result<List<LeaderboardEntryModel>>> getLeaderboard() async {
+    try {
+      final response = await client.get('${ApiConstants.referrals}/leaderboard');
+      final data = response['data'] as List;
+      return Result.success(data.map((e) => LeaderboardEntryModel.fromJson(e)).toList());
+    } catch (e) {
+      return _handleError(e);
     }
+  }
+
+  FailureResult<T> _handleError<T>(Object e) {
+    if (e is ValidationException) {
+      final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
+      return FailureResult<T>(Failure.validation(errors));
+    } else if (e is UnauthorizedException) {
+      return FailureResult<T>(Failure.unauthorized(e.message));
+    } else if (e is NetworkException) {
+      return FailureResult<T>(Failure.network(e.message));
+    } else if (e is NotFoundException) {
+      return FailureResult<T>(Failure.notFound(e.message));
+    } else if (e is ServerException) {
+      return FailureResult<T>(Failure.server(e.message, statusCode: e.statusCode));
+    }
+    return FailureResult<T>(Failure.unknown(e.toString()));
   }
 }

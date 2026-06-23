@@ -1,61 +1,38 @@
-import 'package:dio/dio.dart';
-
+import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
-import '../../core/network/api_client.dart';
+import '../../core/network/http_client.dart';
 
 class PaymentRepository {
-  final ApiClient apiClient;
+  final FarchisHttpClient client;
 
-  PaymentRepository({required this.apiClient});
+  PaymentRepository(this.client);
 
-  /// Initiate payment
-  Future<Result<Map<String, dynamic>>> initiatePayment({
-    required String bookingId,
-    required double amount,
-    required String method,
-    Map<String, dynamic>? metadata,
-  }) async {
+  Future<Result<String>> initiatePayment(int bookingId, String method, String phone) async {
     try {
-      final data = <String, dynamic>{
-        'booking_id': bookingId,
-        'amount': amount,
-        'method': method,
-      };
-
-      if (metadata != null) {
-        data.addAll(metadata);
-      }
-
-      final response = await apiClient.initiatePayment(data);
-      return Result.success(response);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.post(
+        ApiConstants.initiatePayment,
+        body: {'booking_id': bookingId, 'method': method, 'phone': phone},
+      );
+      return Result.success(response['data']['payment_url'] ?? response['message']);
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  Failure _mapDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return Failure.network('Connection timeout');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            e.response?.data['message'] ?? 'Server error: $statusCode';
-        if (statusCode == 422) {
-          final errors = e.response?.data['errors'] ?? {};
-          return Failure.validation(Map<String, String>.from(errors));
-        } else if (statusCode >= 500) {
-          return Failure.server(message);
-        }
-        return Failure.server(message);
-      case DioExceptionType.cancel:
-        return Failure.network('Request cancelled');
-      default:
-        return Failure.network('Network error: ${e.message}');
+  FailureResult<T> _handleError<T>(Object e) {
+    if (e is ValidationException) {
+      final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
+      return FailureResult<T>(Failure.validation(errors));
+    } else if (e is UnauthorizedException) {
+      return FailureResult<T>(Failure.unauthorized(e.message));
+    } else if (e is NetworkException) {
+      return FailureResult<T>(Failure.network(e.message));
+    } else if (e is NotFoundException) {
+      return FailureResult<T>(Failure.notFound(e.message));
+    } else if (e is ServerException) {
+      return FailureResult<T>(Failure.server(e.message, statusCode: e.statusCode));
     }
+    return FailureResult<T>(Failure.unknown(e.toString()));
   }
 }

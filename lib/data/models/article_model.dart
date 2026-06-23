@@ -1,27 +1,51 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'article_model.freezed.dart';
 part 'article_model.g.dart';
 
-@freezed
-class ArticleModel with _$ArticleModel, EquatableMixin {
-  const ArticleModel._();
+@JsonEnum(fieldRename: FieldRename.snake)
+enum ArticleCategory { maintenance, paint_care, faq }
 
-  const factory ArticleModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'title') required String title,
-    @JsonKey(name: 'slug') required String slug,
-    @JsonKey(name: 'body') required String body,
-    @JsonKey(name: 'category') String? category,
-    @JsonKey(name: 'image') String? image,
-    @JsonKey(name: 'published_at') String? publishedAt,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _ArticleModel;
+@JsonSerializable(explicitToJson: true)
+class ArticleModel {
+  final int id;
+  final String title;
+  final String slug;
+  final String body;
+  final ArticleCategory category;
+  final String? imageUrl;
+  final DateTime publishedAt;
 
-  factory ArticleModel.fromJson(Map<String, dynamic> json) =>
-      _$ArticleModelFromJson(json);
+  const ArticleModel({
+    required this.id,
+    required this.title,
+    required this.slug,
+    required this.body,
+    required this.category,
+    this.imageUrl,
+    required this.publishedAt,
+  });
 
-  @override
-  List<Object?> get props => [id, title, slug];
+  factory ArticleModel.fromJson(Map<String, dynamic> json) => _$ArticleModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ArticleModelToJson(this);
+
+  ArticleModel copyWith({
+    int? id,
+    String? title,
+    String? slug,
+    String? body,
+    ArticleCategory? category,
+    String? imageUrl,
+    DateTime? publishedAt,
+  }) {
+    return ArticleModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      slug: slug ?? this.slug,
+      body: body ?? this.body,
+      category: category ?? this.category,
+      imageUrl: imageUrl ?? this.imageUrl,
+      publishedAt: publishedAt ?? this.publishedAt,
+    );
+  }
 }

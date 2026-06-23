@@ -1,28 +1,47 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'scratch_card_model.freezed.dart';
 part 'scratch_card_model.g.dart';
 
-@freezed
-class ScratchCardModel with _$ScratchCardModel, EquatableMixin {
-  const ScratchCardModel._();
+@JsonEnum(fieldRename: FieldRename.snake)
+enum PrizeType { discount, free_valet, bonus_points }
 
-  const factory ScratchCardModel({
-    @JsonKey(name: 'id') required String id,
-    @JsonKey(name: 'user_id') required String userId,
-    @JsonKey(name: 'booking_id') String? bookingId,
-    @JsonKey(name: 'prize_type') required String prizeType,
-    @JsonKey(name: 'prize_value') required double prizeValue,
-    @JsonKey(name: 'is_scratched') @Default(false) bool isScratched,
-    @JsonKey(name: 'scratched_at') String? scratchedAt,
-    @JsonKey(name: 'expires_at') required String expiresAt,
-    @JsonKey(name: 'created_at') String? createdAt,
-  }) = _ScratchCardModel;
+@JsonSerializable(explicitToJson: true)
+class ScratchCardModel {
+  final int id;
+  final PrizeType prizeType;
+  final double prizeValue;
+  final bool isScratched;
+  final DateTime? scratchedAt;
+  final DateTime expiresAt;
 
-  factory ScratchCardModel.fromJson(Map<String, dynamic> json) =>
-      _$ScratchCardModelFromJson(json);
+  const ScratchCardModel({
+    required this.id,
+    required this.prizeType,
+    required this.prizeValue,
+    required this.isScratched,
+    this.scratchedAt,
+    required this.expiresAt,
+  });
 
-  @override
-  List<Object?> get props => [id, userId, prizeType, isScratched];
+  factory ScratchCardModel.fromJson(Map<String, dynamic> json) => _$ScratchCardModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ScratchCardModelToJson(this);
+
+  ScratchCardModel copyWith({
+    int? id,
+    PrizeType? prizeType,
+    double? prizeValue,
+    bool? isScratched,
+    DateTime? scratchedAt,
+    DateTime? expiresAt,
+  }) {
+    return ScratchCardModel(
+      id: id ?? this.id,
+      prizeType: prizeType ?? this.prizeType,
+      prizeValue: prizeValue ?? this.prizeValue,
+      isScratched: isScratched ?? this.isScratched,
+      scratchedAt: scratchedAt ?? this.scratchedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+    );
+  }
 }

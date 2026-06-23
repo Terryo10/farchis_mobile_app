@@ -1,30 +1,63 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../splash/splash_screen.dart';
-import '../home/home_screen.dart';
-import '../auth/login_screen.dart';
-import '../auth/otp_screen.dart';
+import '../../data/models/booking_model.dart';
+import 'auth_guard.dart';
+import '../../data/models/notification_model.dart';
+import '../screens/splash_screen.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/register_screen.dart';
+import '../screens/main_layout_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/booking/booking_list_screen.dart';
+import '../screens/booking/job_tracker_screen.dart';
+import '../screens/booking/create_booking_screen.dart';
+import '../screens/maps/driver_convenience_map_screen.dart';
+import '../screens/scratch_card/scratch_card_screen.dart';
+import '../screens/loyalty/loyalty_screen.dart';
+import '../screens/profile/profile_screen.dart';
+import '../screens/gallery/gallery_screen.dart';
+import '../screens/referral/referral_screen.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/',
-  errorPageBuilder: (context, state) {
-    return NoTransitionPage(
-      child: Scaffold(
-        body: Center(
-          child: Text('Page not found: ${state.fullPath}'),
+part 'app_router.gr.dart';
+
+@AutoRouterConfig(replaceInRouteName: 'Screen,Route')
+class AppRouter extends RootStackRouter {
+  final AuthGuard authGuard;
+
+  AppRouter({required this.authGuard});
+
+  @override
+  List<AutoRoute> get routes => [
+        AutoRoute(page: SplashRoute.page, initial: true),
+        AutoRoute(page: LoginRoute.page),
+        AutoRoute(page: RegisterRoute.page),
+        AutoRoute(
+          page: MainLayoutRoute.page,
+          children: [
+            AutoRoute(page: HomeRoute.page),
+            AutoRoute(page: BookingListRoute.page),
+            AutoRoute(page: LoyaltyRoute.page),
+            AutoRoute(page: ProfileRoute.page),
+          ],
         ),
-      ),
-    );
-  },
-  routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
+        AutoRoute(page: JobTrackerRoute.page, guards: [authGuard]),
+        AutoRoute(page: CreateBookingRoute.page, guards: [authGuard]),
+        AutoRoute(page: DriverConvenienceMapRoute.page, guards: [authGuard]),
+        AutoRoute(page: ScratchCardRoute.page, guards: [authGuard]),
+        AutoRoute(page: GalleryRoute.page),
+        AutoRoute(page: ReferralRoute.page, guards: [authGuard]),
+      ];
 
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
-    ),
-  ],
-);
+  static void navigateFromNotification(NotificationModel notification, AppRouter router) {
+    if (notification.type == 'booking_update') {
+      final bookingId = notification.data['booking_id'];
+      if (bookingId != null) {
+        // router.push(JobTrackerRoute(bookingId: bookingId));
+      }
+    } else if (notification.type == 'scratch_card') {
+      router.push(const ScratchCardRoute());
+    } else if (notification.type == 'promotion') {
+      // router.push(PromotionRoute(id: notification.data['promotion_id']));
+    }
+  }
+}

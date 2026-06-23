@@ -1,21 +1,28 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'available_slot_model.freezed.dart';
 part 'available_slot_model.g.dart';
 
-@freezed
-class AvailableSlotModel with _$AvailableSlotModel, EquatableMixin {
-  const AvailableSlotModel._();
+@JsonSerializable(explicitToJson: true)
+class AvailableSlotModel {
+  final DateTime date;
+  final List<String> slots;
 
-  const factory AvailableSlotModel({
-    @JsonKey(name: 'date') required String date,
-    @JsonKey(name: 'slots') @Default([]) List<String> slots,
-  }) = _AvailableSlotModel;
+  const AvailableSlotModel({
+    required this.date,
+    required this.slots,
+  });
 
-  factory AvailableSlotModel.fromJson(Map<String, dynamic> json) =>
-      _$AvailableSlotModelFromJson(json);
+  factory AvailableSlotModel.fromJson(Map<String, dynamic> json) => _$AvailableSlotModelFromJson(json);
 
-  @override
-  List<Object?> get props => [date, slots];
+  Map<String, dynamic> toJson() => _$AvailableSlotModelToJson(this);
+
+  AvailableSlotModel copyWith({
+    DateTime? date,
+    List<String>? slots,
+  }) {
+    return AvailableSlotModel(
+      date: date ?? this.date,
+      slots: slots ?? this.slots,
+    );
+  }
 }

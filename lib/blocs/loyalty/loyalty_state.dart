@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../core/error/failures.dart';
+import '../../data/models/loyalty_transaction_model.dart';
 import '../../data/models/loyalty_wallet_model.dart';
 
 sealed class LoyaltyState extends Equatable {
@@ -20,7 +21,7 @@ class LoyaltyLoading extends LoyaltyState {
 
 class LoyaltyLoaded extends LoyaltyState {
   final LoyaltyWalletModel wallet;
-  final List<Map<String, dynamic>> transactions;
+  final List<LoyaltyTransactionModel> transactions;
 
   const LoyaltyLoaded({
     required this.wallet,

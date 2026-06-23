@@ -1,36 +1,88 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'service_model.dart';
+import 'scratch_card_model.dart';
 
-part 'booking_model.freezed.dart';
 part 'booking_model.g.dart';
 
-@freezed
-class BookingModel with _$BookingModel, EquatableMixin {
-  const BookingModel._();
+@JsonEnum(fieldRename: FieldRename.snake)
+enum BookingStatus { pending, confirmed, in_queue, being_assessed, in_progress, ready, completed, cancelled }
 
-  const factory BookingModel({
-    required String id,
-    @JsonKey(name: 'user_id') required String userId,
-    @JsonKey(name: 'service_id') required String serviceId,
+@JsonEnum(fieldRename: FieldRename.snake)
+enum PaymentStatus { pending, paid, failed }
+
+@JsonSerializable(explicitToJson: true)
+class BookingModel {
+  final int id;
+  final int userId;
+  final ServiceModel service;
+  final DateTime bookingDate;
+  final String bookingTime;
+  final BookingStatus status;
+  final String? notes;
+  final List<String> damagePhotos;
+  final double totalAmount;
+  final PaymentStatus paymentStatus;
+  final String? paymentReference;
+  final String? invoiceUrl;
+  final String? adminNotes;
+  final DateTime createdAt;
+  final ScratchCardModel? scratchCard;
+
+  const BookingModel({
+    required this.id,
+    required this.userId,
+    required this.service,
+    required this.bookingDate,
+    required this.bookingTime,
+    required this.status,
+    this.notes,
+    this.damagePhotos = const [],
+    required this.totalAmount,
+    required this.paymentStatus,
+    this.paymentReference,
+    this.invoiceUrl,
+    this.adminNotes,
+    required this.createdAt,
+    this.scratchCard,
+  });
+
+  factory BookingModel.fromJson(Map<String, dynamic> json) => _$BookingModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$BookingModelToJson(this);
+
+  BookingModel copyWith({
+    int? id,
+    int? userId,
     ServiceModel? service,
-    @JsonKey(name: 'booking_date') required String bookingDate,
-    @JsonKey(name: 'booking_time') required String bookingTime,
-    required String status,
+    DateTime? bookingDate,
+    String? bookingTime,
+    BookingStatus? status,
     String? notes,
-    @JsonKey(name: 'damage_photos') @Default([]) List<String> damagePhotos,
-    @JsonKey(name: 'total_amount') required double totalAmount,
-    @JsonKey(name: 'payment_status') String? paymentStatus,
-    @JsonKey(name: 'payment_reference') String? paymentReference,
-    @JsonKey(name: 'invoice_url') String? invoiceUrl,
-    @JsonKey(name: 'admin_notes') String? adminNotes,
-    @JsonKey(name: 'created_at') String? createdAt,
-    @JsonKey(name: 'updated_at') String? updatedAt,
-  }) = _BookingModel;
-
-  factory BookingModel.fromJson(Map<String, dynamic> json) =>
-      _$BookingModelFromJson(json);
-
-  @override
-  List<Object?> get props => [id, userId, status, bookingDate, bookingTime];
+    List<String>? damagePhotos,
+    double? totalAmount,
+    PaymentStatus? paymentStatus,
+    String? paymentReference,
+    String? invoiceUrl,
+    String? adminNotes,
+    DateTime? createdAt,
+    ScratchCardModel? scratchCard,
+  }) {
+    return BookingModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      service: service ?? this.service,
+      bookingDate: bookingDate ?? this.bookingDate,
+      bookingTime: bookingTime ?? this.bookingTime,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      damagePhotos: damagePhotos ?? this.damagePhotos,
+      totalAmount: totalAmount ?? this.totalAmount,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentReference: paymentReference ?? this.paymentReference,
+      invoiceUrl: invoiceUrl ?? this.invoiceUrl,
+      adminNotes: adminNotes ?? this.adminNotes,
+      createdAt: createdAt ?? this.createdAt,
+      scratchCard: scratchCard ?? this.scratchCard,
+    );
+  }
 }

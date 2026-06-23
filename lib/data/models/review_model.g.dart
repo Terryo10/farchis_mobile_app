@@ -6,22 +6,21 @@ part of 'review_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ReviewModelImpl _$$ReviewModelImplFromJson(Map<String, dynamic> json) =>
-    _$ReviewModelImpl(
-      id: json['id'] as String,
-      bookingId: json['booking_id'] as String,
-      rating: (json['rating'] as num).toInt(),
-      comment: json['comment'] as String?,
-      isApproved: json['is_approved'] as bool? ?? false,
-      createdAt: json['created_at'] as String?,
-    );
+ReviewModel _$ReviewModelFromJson(Map<String, dynamic> json) => ReviewModel(
+  id: (json['id'] as num).toInt(),
+  bookingId: (json['bookingId'] as num).toInt(),
+  rating: (json['rating'] as num).toInt(),
+  comment: json['comment'] as String?,
+  isApproved: json['isApproved'] as bool,
+  createdAt: DateTime.parse(json['createdAt'] as String),
+);
 
-Map<String, dynamic> _$$ReviewModelImplToJson(_$ReviewModelImpl instance) =>
+Map<String, dynamic> _$ReviewModelToJson(ReviewModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'booking_id': instance.bookingId,
+      'bookingId': instance.bookingId,
       'rating': instance.rating,
       'comment': instance.comment,
-      'is_approved': instance.isApproved,
-      'created_at': instance.createdAt,
+      'isApproved': instance.isApproved,
+      'createdAt': instance.createdAt.toIso8601String(),
     };

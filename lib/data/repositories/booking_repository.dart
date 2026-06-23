@@ -1,144 +1,57 @@
-import 'package:dio/dio.dart';
-
+import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
-import '../../core/network/api_client.dart';
+import '../../core/network/http_client.dart';
 import '../models/booking_model.dart';
 import '../models/available_slot_model.dart';
 
 class BookingRepository {
-  final ApiClient apiClient;
+  final FarchisHttpClient client;
 
-  BookingRepository({required this.apiClient});
+  BookingRepository(this.client);
 
-  /// Get all bookings
   Future<Result<List<BookingModel>>> getBookings() async {
     try {
-      final bookings = await apiClient.getBookings();
-      return Result.success(bookings);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get(ApiConstants.bookings);
+      final data = response['data'] as List;
+      return Result.success(data.map((e) => BookingModel.fromJson(e)).toList());
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Get booking by ID
-  Future<Result<BookingModel>> getBooking(String id) async {
+  Future<Result<BookingModel>> createBooking(Map<String, dynamic> payload) async {
     try {
-      final booking = await apiClient.getBooking(id);
-      return Result.success(booking);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.post(ApiConstants.bookings, body: payload);
+      return Result.success(BookingModel.fromJson(response['data']));
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Create a new booking
-  Future<Result<BookingModel>> createBooking({
-    required String serviceId,
-    required String bookingDate,
-    required String bookingTime,
-    String? notes,
-    List<String>? damagePhotos,
-  }) async {
+  Future<Result<List<AvailableSlotModel>>> getAvailableSlots(String date) async {
     try {
-      final data = <String, dynamic>{
-        'service_id': serviceId,
-        'booking_date': bookingDate,
-        'booking_time': bookingTime,
-      };
-
-      if (notes != null) data['notes'] = notes;
-      if (damagePhotos != null) data['damage_photos'] = damagePhotos;
-
-      final booking = await apiClient.createBooking(data);
-      return Result.success(booking);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
+      final response = await client.get('${ApiConstants.availableSlots}?date=$date');
+      final data = response['data'] as List;
+      return Result.success(data.map((e) => AvailableSlotModel.fromJson(e)).toList());
     } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+      return _handleError(e);
     }
   }
 
-  /// Update booking
-  Future<Result<BookingModel>> updateBooking({
-    required String id,
-    String? bookingDate,
-    String? bookingTime,
-    String? notes,
-    List<String>? damagePhotos,
-  }) async {
-    try {
-      final data = <String, dynamic>{};
-
-      if (bookingDate != null) data['booking_date'] = bookingDate;
-      if (bookingTime != null) data['booking_time'] = bookingTime;
-      if (notes != null) data['notes'] = notes;
-      if (damagePhotos != null) data['damage_photos'] = damagePhotos;
-
-      final booking = await apiClient.updateBooking(id, data);
-      return Result.success(booking);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
-    } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
+  FailureResult<T> _handleError<T>(Object e) {
+    if (e is ValidationException) {
+      final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
+      return FailureResult<T>(Failure.validation(errors));
+    } else if (e is UnauthorizedException) {
+      return FailureResult<T>(Failure.unauthorized(e.message));
+    } else if (e is NetworkException) {
+      return FailureResult<T>(Failure.network(e.message));
+    } else if (e is NotFoundException) {
+      return FailureResult<T>(Failure.notFound(e.message));
+    } else if (e is ServerException) {
+      return FailureResult<T>(Failure.server(e.message, statusCode: e.statusCode));
     }
-  }
-
-  /// Cancel booking
-  Future<Result<BookingModel>> cancelBooking(String id) async {
-    try {
-      final booking = await apiClient.cancelBooking(id);
-      return Result.success(booking);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
-    } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
-    }
-  }
-
-  /// Get available slots for a service
-  Future<Result<List<AvailableSlotModel>>> getAvailableSlots({
-    required String serviceId,
-    required String date,
-  }) async {
-    try {
-      final slots = await apiClient.getAvailableSlots({
-        'service_id': serviceId,
-        'date': date,
-      });
-      return Result.success(slots);
-    } on DioException catch (e) {
-      return Result.failure(_mapDioException(e));
-    } catch (e) {
-      return Result.failure(Failure.unknown('Unexpected error: $e'));
-    }
-  }
-
-  Failure _mapDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.sendTimeout:
-        return Failure.network('Connection timeout');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            e.response?.data['message'] ?? 'Server error: $statusCode';
-        if (statusCode == 404) {
-          return Failure.notFound(message);
-        } else if (statusCode == 422) {
-          final errors = e.response?.data['errors'] ?? {};
-          return Failure.validation(Map<String, String>.from(errors));
-        } else if (statusCode >= 500) {
-          return Failure.server(message);
-        }
-        return Failure.server(message);
-      case DioExceptionType.cancel:
-        return Failure.network('Request cancelled');
-      default:
-        return Failure.network('Network error: ${e.message}');
-    }
+    return FailureResult<T>(Failure.unknown(e.toString()));
   }
 }

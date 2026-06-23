@@ -6,26 +6,27 @@ part of 'loyalty_transaction_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$LoyaltyTransactionModelImpl _$$LoyaltyTransactionModelImplFromJson(
+LoyaltyTransactionModel _$LoyaltyTransactionModelFromJson(
   Map<String, dynamic> json,
-) => _$LoyaltyTransactionModelImpl(
-  id: json['id'] as String,
-  userId: json['user_id'] as String,
-  bookingId: json['booking_id'] as String?,
+) => LoyaltyTransactionModel(
+  id: (json['id'] as num).toInt(),
   points: (json['points'] as num).toInt(),
-  type: json['type'] as String,
-  description: json['description'] as String?,
-  createdAt: json['created_at'] as String?,
+  type: $enumDecode(_$LoyaltyTransactionTypeEnumMap, json['type']),
+  description: json['description'] as String,
+  createdAt: DateTime.parse(json['createdAt'] as String),
 );
 
-Map<String, dynamic> _$$LoyaltyTransactionModelImplToJson(
-  _$LoyaltyTransactionModelImpl instance,
+Map<String, dynamic> _$LoyaltyTransactionModelToJson(
+  LoyaltyTransactionModel instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'user_id': instance.userId,
-  'booking_id': instance.bookingId,
   'points': instance.points,
-  'type': instance.type,
+  'type': _$LoyaltyTransactionTypeEnumMap[instance.type]!,
   'description': instance.description,
-  'created_at': instance.createdAt,
+  'createdAt': instance.createdAt.toIso8601String(),
+};
+
+const _$LoyaltyTransactionTypeEnumMap = {
+  LoyaltyTransactionType.earn: 'earn',
+  LoyaltyTransactionType.redeem: 'redeem',
 };

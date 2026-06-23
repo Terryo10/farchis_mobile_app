@@ -6,30 +6,30 @@ part of 'scratch_card_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScratchCardModelImpl _$$ScratchCardModelImplFromJson(
-  Map<String, dynamic> json,
-) => _$ScratchCardModelImpl(
-  id: json['id'] as String,
-  userId: json['user_id'] as String,
-  bookingId: json['booking_id'] as String?,
-  prizeType: json['prize_type'] as String,
-  prizeValue: (json['prize_value'] as num).toDouble(),
-  isScratched: json['is_scratched'] as bool? ?? false,
-  scratchedAt: json['scratched_at'] as String?,
-  expiresAt: json['expires_at'] as String,
-  createdAt: json['created_at'] as String?,
-);
+ScratchCardModel _$ScratchCardModelFromJson(Map<String, dynamic> json) =>
+    ScratchCardModel(
+      id: (json['id'] as num).toInt(),
+      prizeType: $enumDecode(_$PrizeTypeEnumMap, json['prizeType']),
+      prizeValue: (json['prizeValue'] as num).toDouble(),
+      isScratched: json['isScratched'] as bool,
+      scratchedAt: json['scratchedAt'] == null
+          ? null
+          : DateTime.parse(json['scratchedAt'] as String),
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
+    );
 
-Map<String, dynamic> _$$ScratchCardModelImplToJson(
-  _$ScratchCardModelImpl instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'user_id': instance.userId,
-  'booking_id': instance.bookingId,
-  'prize_type': instance.prizeType,
-  'prize_value': instance.prizeValue,
-  'is_scratched': instance.isScratched,
-  'scratched_at': instance.scratchedAt,
-  'expires_at': instance.expiresAt,
-  'created_at': instance.createdAt,
+Map<String, dynamic> _$ScratchCardModelToJson(ScratchCardModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'prizeType': _$PrizeTypeEnumMap[instance.prizeType]!,
+      'prizeValue': instance.prizeValue,
+      'isScratched': instance.isScratched,
+      'scratchedAt': instance.scratchedAt?.toIso8601String(),
+      'expiresAt': instance.expiresAt.toIso8601String(),
+    };
+
+const _$PrizeTypeEnumMap = {
+  PrizeType.discount: 'discount',
+  PrizeType.free_valet: 'free_valet',
+  PrizeType.bonus_points: 'bonus_points',
 };

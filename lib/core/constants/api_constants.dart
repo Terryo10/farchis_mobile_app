@@ -1,7 +1,12 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static String get baseUrl {
+    return 'http://10.39.132.196:5000/api/v1';
+  }
 
   // Auth Endpoints
   static const String authRegister = '/auth/register';
@@ -18,6 +23,7 @@ class ApiConstants {
   static const String bookings = '/bookings';
   static String booking(String id) => '/bookings/$id';
   static String cancelBooking(String id) => '/bookings/$id/cancel';
+  static String driverLocation(String id) => '/bookings/$id/driver-location';
   static const String availableSlots = '/bookings/available-slots';
 
   // Services

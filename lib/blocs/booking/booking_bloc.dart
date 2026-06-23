@@ -1,96 +1,67 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import '../../core/error/failures.dart';
+import '../../data/models/booking_model.dart';
 import '../../data/repositories/booking_repository.dart';
-import 'booking_event.dart';
-import 'booking_state.dart';
 
-/// BookingBloc manages the booking list and details
+// Events
+sealed class BookingEvent extends Equatable {
+  const BookingEvent();
+  @override
+  List<Object?> get props => [];
+}
+
+class LoadBookings extends BookingEvent {}
+
+// States
+sealed class BookingState extends Equatable {
+  const BookingState();
+  @override
+  List<Object?> get props => [];
+}
+
+class BookingInitial extends BookingState {}
+
+class BookingLoading extends BookingState {}
+
+class BookingsLoaded extends BookingState {
+  final List<BookingModel> active;
+  final List<BookingModel> past;
+
+  const BookingsLoaded({required this.active, required this.past});
+
+  @override
+  List<Object?> get props => [active, past];
+}
+
+class BookingError extends BookingState {
+  final Failure failure;
+  const BookingError(this.failure);
+
+  @override
+  List<Object?> get props => [failure];
+}
+
+// Bloc
 class BookingBloc extends Bloc<BookingEvent, BookingState> {
-  final BookingRepository bookingRepository;
+  final BookingRepository repository;
 
-  BookingBloc({required this.bookingRepository}) : super(const BookingInitial()) {
-    on<GetBookingsEvent>(_onGetBookings);
-    on<GetBookingEvent>(_onGetBooking);
-    on<RefreshBookingEvent>(_onRefreshBooking);
-    on<CancelBookingEvent>(_onCancelBooking);
-    on<GetAvailableSlotsEvent>(_onGetAvailableSlots);
+  BookingBloc(this.repository) : super(BookingInitial()) {
+    on<LoadBookings>(_onLoadBookings);
   }
 
-  Future<void> _onGetBookings(GetBookingsEvent event, Emitter<BookingState> emit) async {
-    emit(const BookingsLoading());
-
-    final result = await bookingRepository.getBookings();
+  Future<void> _onLoadBookings(LoadBookings event, Emitter<BookingState> emit) async {
+    emit(BookingLoading());
+    final result = await repository.getBookings();
 
     result.when(
       onSuccess: (bookings) {
-        emit(BookingsLoaded(bookings));
+        final active = bookings.where((b) => b.status != BookingStatus.completed && b.status != BookingStatus.cancelled).toList();
+        final past = bookings.where((b) => b.status == BookingStatus.completed || b.status == BookingStatus.cancelled).toList();
+        emit(BookingsLoaded(active: active, past: past));
       },
       onFailure: (failure) {
-        emit(BookingsLoadFailed(failure));
-      },
-    );
-  }
-
-  Future<void> _onGetBooking(GetBookingEvent event, Emitter<BookingState> emit) async {
-    emit(const BookingDetailLoading());
-
-    final result = await bookingRepository.getBooking(event.id);
-
-    result.when(
-      onSuccess: (booking) {
-        emit(BookingDetailLoaded(booking));
-      },
-      onFailure: (failure) {
-        emit(BookingDetailLoadFailed(failure));
-      },
-    );
-  }
-
-  Future<void> _onRefreshBooking(RefreshBookingEvent event, Emitter<BookingState> emit) async {
-    final result = await bookingRepository.getBooking(event.id);
-
-    result.when(
-      onSuccess: (booking) {
-        emit(BookingDetailLoaded(booking));
-      },
-      onFailure: (failure) {
-        emit(BookingDetailLoadFailed(failure));
-      },
-    );
-  }
-
-  Future<void> _onCancelBooking(CancelBookingEvent event, Emitter<BookingState> emit) async {
-    emit(BookingCancelling(event.id));
-
-    final result = await bookingRepository.cancelBooking(event.id);
-
-    result.when(
-      onSuccess: (booking) {
-        emit(BookingCancelled(booking));
-      },
-      onFailure: (failure) {
-        emit(BookingCancelFailed(failure));
-      },
-    );
-  }
-
-  Future<void> _onGetAvailableSlots(
-    GetAvailableSlotsEvent event,
-    Emitter<BookingState> emit,
-  ) async {
-    emit(const SlotsLoading());
-
-    final result = await bookingRepository.getAvailableSlots(
-      serviceId: event.serviceId,
-      date: event.date,
-    );
-
-    result.when(
-      onSuccess: (slots) {
-        emit(SlotsLoaded(slots));
-      },
-      onFailure: (failure) {
-        emit(SlotsLoadFailed(failure));
+        emit(BookingError(failure));
       },
     );
   }

@@ -6,48 +6,62 @@ part of 'booking_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$BookingModelImpl _$$BookingModelImplFromJson(Map<String, dynamic> json) =>
-    _$BookingModelImpl(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      serviceId: json['service_id'] as String,
-      service: json['service'] == null
-          ? null
-          : ServiceModel.fromJson(json['service'] as Map<String, dynamic>),
-      bookingDate: json['booking_date'] as String,
-      bookingTime: json['booking_time'] as String,
-      status: json['status'] as String,
-      notes: json['notes'] as String?,
-      damagePhotos:
-          (json['damage_photos'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-      totalAmount: (json['total_amount'] as num).toDouble(),
-      paymentStatus: json['payment_status'] as String?,
-      paymentReference: json['payment_reference'] as String?,
-      invoiceUrl: json['invoice_url'] as String?,
-      adminNotes: json['admin_notes'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-    );
+BookingModel _$BookingModelFromJson(Map<String, dynamic> json) => BookingModel(
+  id: (json['id'] as num).toInt(),
+  userId: (json['userId'] as num).toInt(),
+  service: ServiceModel.fromJson(json['service'] as Map<String, dynamic>),
+  bookingDate: DateTime.parse(json['bookingDate'] as String),
+  bookingTime: json['bookingTime'] as String,
+  status: $enumDecode(_$BookingStatusEnumMap, json['status']),
+  notes: json['notes'] as String?,
+  damagePhotos:
+      (json['damagePhotos'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  totalAmount: (json['totalAmount'] as num).toDouble(),
+  paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['paymentStatus']),
+  paymentReference: json['paymentReference'] as String?,
+  invoiceUrl: json['invoiceUrl'] as String?,
+  adminNotes: json['adminNotes'] as String?,
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  scratchCard: json['scratchCard'] == null
+      ? null
+      : ScratchCardModel.fromJson(json['scratchCard'] as Map<String, dynamic>),
+);
 
-Map<String, dynamic> _$$BookingModelImplToJson(_$BookingModelImpl instance) =>
+Map<String, dynamic> _$BookingModelToJson(BookingModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'user_id': instance.userId,
-      'service_id': instance.serviceId,
-      'service': instance.service,
-      'booking_date': instance.bookingDate,
-      'booking_time': instance.bookingTime,
-      'status': instance.status,
+      'userId': instance.userId,
+      'service': instance.service.toJson(),
+      'bookingDate': instance.bookingDate.toIso8601String(),
+      'bookingTime': instance.bookingTime,
+      'status': _$BookingStatusEnumMap[instance.status]!,
       'notes': instance.notes,
-      'damage_photos': instance.damagePhotos,
-      'total_amount': instance.totalAmount,
-      'payment_status': instance.paymentStatus,
-      'payment_reference': instance.paymentReference,
-      'invoice_url': instance.invoiceUrl,
-      'admin_notes': instance.adminNotes,
-      'created_at': instance.createdAt,
-      'updated_at': instance.updatedAt,
+      'damagePhotos': instance.damagePhotos,
+      'totalAmount': instance.totalAmount,
+      'paymentStatus': _$PaymentStatusEnumMap[instance.paymentStatus]!,
+      'paymentReference': instance.paymentReference,
+      'invoiceUrl': instance.invoiceUrl,
+      'adminNotes': instance.adminNotes,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'scratchCard': instance.scratchCard?.toJson(),
     };
+
+const _$BookingStatusEnumMap = {
+  BookingStatus.pending: 'pending',
+  BookingStatus.confirmed: 'confirmed',
+  BookingStatus.in_queue: 'in_queue',
+  BookingStatus.being_assessed: 'being_assessed',
+  BookingStatus.in_progress: 'in_progress',
+  BookingStatus.ready: 'ready',
+  BookingStatus.completed: 'completed',
+  BookingStatus.cancelled: 'cancelled',
+};
+
+const _$PaymentStatusEnumMap = {
+  PaymentStatus.pending: 'pending',
+  PaymentStatus.paid: 'paid',
+  PaymentStatus.failed: 'failed',
+};

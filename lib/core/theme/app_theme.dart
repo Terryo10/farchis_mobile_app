@@ -20,8 +20,6 @@ class AppTheme {
         onError: AppColors.white,
         surface: AppColors.lightSurface,
         onSurface: AppColors.lightTextPrimary,
-        background: AppColors.lightBackground,
-        onBackground: AppColors.lightTextPrimary,
         outline: AppColors.lightBorder,
       ),
       scaffoldBackgroundColor: AppColors.lightBackground,
@@ -135,9 +133,9 @@ class AppTheme {
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.lightSurface,
-        disabledColor: AppColors.lightTextTertiary.withOpacity(0.38),
+        disabledColor: AppColors.lightTextTertiary.withValues(alpha: 0.38),
         selectedColor: AppColors.lightAccent,
-        secondarySelectedColor: AppColors.lightAccent.withOpacity(0.8),
+        secondarySelectedColor: AppColors.lightAccent.withValues(alpha: 0.8),
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.md),
         labelStyle: AppTextStyles.bodySmall.copyWith(
           color: AppColors.lightTextPrimary,
@@ -264,8 +262,6 @@ class AppTheme {
         onError: AppColors.darkBackground,
         surface: AppColors.darkSurface,
         onSurface: AppColors.darkTextPrimary,
-        background: AppColors.darkBackground,
-        onBackground: AppColors.darkTextPrimary,
         outline: AppColors.darkBorder,
       ),
       scaffoldBackgroundColor: AppColors.darkBackground,
@@ -379,9 +375,9 @@ class AppTheme {
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.darkSurface,
-        disabledColor: AppColors.darkTextTertiary.withOpacity(0.38),
+        disabledColor: AppColors.darkTextTertiary.withValues(alpha: 0.38),
         selectedColor: AppColors.darkPrimary,
-        secondarySelectedColor: AppColors.darkPrimary.withOpacity(0.8),
+        secondarySelectedColor: AppColors.darkPrimary.withValues(alpha: 0.8),
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.md),
         labelStyle: AppTextStyles.bodySmall.copyWith(
           color: AppColors.darkTextPrimary,
