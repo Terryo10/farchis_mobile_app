@@ -49,9 +49,9 @@ class MainLayoutScreen extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _NavItem(
                 icon: Icons.home_rounded,
@@ -73,7 +73,7 @@ class MainLayoutScreen extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.stars_rounded,
-                label: 'Loyalty',
+                label: 'Rewards',
                 isSelected: tabsRouter.activeIndex == 2,
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -82,7 +82,7 @@ class MainLayoutScreen extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.person_rounded,
-                label: 'Profile',
+                label: 'Account',
                 isSelected: tabsRouter.activeIndex == 3,
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -129,32 +129,27 @@ class _NavItem extends StatelessWidget {
                 : AppColors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedScale(
-                scale: isSelected ? 1.15 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                child: Icon(
-                  icon,
+              Icon(
+                icon,
+                color: isSelected
+                    ? AppColors.white
+                    : const Color(0xFF8FA3BF),
+                size: 20,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
                   color: isSelected
                       ? AppColors.white
-                      : const Color.fromARGB(138, 255, 255, 255), // white54
-                  size: 24,
+                      : const Color(0xFF8FA3BF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
                 ),
               ),
-              if (isSelected) ...[
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -162,3 +157,4 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
+

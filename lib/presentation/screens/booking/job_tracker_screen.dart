@@ -7,9 +7,12 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/farchis_button.dart';
 
+import '../../../data/models/booking_model.dart';
+
 @RoutePage()
 class JobTrackerScreen extends StatefulWidget {
-  const JobTrackerScreen({super.key});
+  final BookingModel booking;
+  const JobTrackerScreen({super.key, required this.booking});
 
   @override
   State<JobTrackerScreen> createState() => _JobTrackerScreenState();
@@ -19,38 +22,62 @@ class _JobTrackerScreenState extends State<JobTrackerScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
 
-  static const _stages = [
-    _ServiceStage(
-      title: 'Checked In',
-      description: 'Vehicle received at service center',
-      time: '09:02 AM',
-      status: _StageStatus.completed,
-    ),
-    _ServiceStage(
-      title: 'Diagnosis',
-      description: 'Full system diagnostic completed. No additional issues found.',
-      time: '09:45 AM',
-      status: _StageStatus.completed,
-    ),
-    _ServiceStage(
-      title: 'In Progress',
-      description: 'Technician John M. is working on your vehicle. Oil change and filter replacement underway.',
-      time: '10:30 AM',
-      status: _StageStatus.active,
-    ),
-    _ServiceStage(
-      title: 'Quality Check',
-      description: 'Final inspection and quality verification',
-      time: '--',
-      status: _StageStatus.pending,
-    ),
-    _ServiceStage(
-      title: 'Ready for Pickup',
-      description: 'Your vehicle is ready to be collected',
-      time: '--',
-      status: _StageStatus.pending,
-    ),
-  ];
+  List<_ServiceStage> get _stages {
+    final status = widget.booking.status;
+
+    int activeIndex = -1;
+    if (status == BookingStatus.pending || status == BookingStatus.confirmed || status == BookingStatus.in_queue) {
+      activeIndex = 0;
+    } else if (status == BookingStatus.being_assessed) {
+      activeIndex = 1;
+    } else if (status == BookingStatus.in_progress) {
+      activeIndex = 2;
+    } else if (status == BookingStatus.ready) {
+      activeIndex = 3;
+    } else if (status == BookingStatus.completed) {
+      activeIndex = 4;
+    }
+
+    _StageStatus getStatus(int index) {
+      if (status == BookingStatus.cancelled) return _StageStatus.pending;
+      if (index < activeIndex) return _StageStatus.completed;
+      if (index == activeIndex) return _StageStatus.active;
+      return _StageStatus.pending;
+    }
+
+    return [
+      _ServiceStage(
+        title: 'Checked In',
+        description: 'Vehicle received at service center',
+        time: activeIndex >= 0 ? widget.booking.bookingTime : '--',
+        status: getStatus(0),
+      ),
+      _ServiceStage(
+        title: 'Diagnosis',
+        description: 'System diagnostic in progress.',
+        time: '--',
+        status: getStatus(1),
+      ),
+      _ServiceStage(
+        title: 'In Progress',
+        description: 'Technician is working on your vehicle.',
+        time: '--',
+        status: getStatus(2),
+      ),
+      _ServiceStage(
+        title: 'Ready for Pickup',
+        description: 'Your vehicle is ready to be collected',
+        time: '--',
+        status: getStatus(3),
+      ),
+      _ServiceStage(
+        title: 'Completed',
+        description: 'Vehicle collected.',
+        time: '--',
+        status: getStatus(4),
+      ),
+    ];
+  }
 
   @override
   void initState() {
@@ -196,7 +223,7 @@ class _VehicleInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navyDarkest.withOpacity(isDark ? 0.4 : 0.15),
+            color: AppColors.navyDarkest.withValues(alpha: isDark ? 0.4 : 0.15),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -211,11 +238,11 @@ class _VehicleInfoCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius:
                     BorderRadius.circular(AppDimensions.radiusMd),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                 ),
               ),
               child: const Icon(
@@ -274,7 +301,7 @@ class _InfoChip extends StatelessWidget {
         vertical: AppDimensions.xs,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
       ),
       child: Row(
@@ -311,10 +338,10 @@ class _EstimatedTimeCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.lg),
       decoration: BoxDecoration(
-        color: successColor.withOpacity(0.08),
+        color: successColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         border: Border.all(
-          color: successColor.withOpacity(0.25),
+          color: successColor.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
@@ -323,7 +350,7 @@ class _EstimatedTimeCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: successColor.withOpacity(0.15),
+              color: successColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -362,7 +389,7 @@ class _EstimatedTimeCard extends StatelessWidget {
               vertical: AppDimensions.sm,
             ),
             decoration: BoxDecoration(
-              color: successColor.withOpacity(0.15),
+              color: successColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: Text(
@@ -403,8 +430,8 @@ class _TimelineStep extends StatelessWidget {
         return isDark ? AppColors.darkInfo : AppColors.lightInfo;
       case _StageStatus.pending:
         return isDark
-            ? AppColors.darkTextTertiary.withOpacity(0.3)
-            : AppColors.lightTextTertiary.withOpacity(0.3);
+            ? AppColors.darkTextTertiary.withValues(alpha: 0.3)
+            : AppColors.lightTextTertiary.withValues(alpha: 0.3);
     }
   }
 
@@ -437,8 +464,8 @@ class _TimelineStep extends StatelessWidget {
                               color: dotColor,
                               boxShadow: [
                                 BoxShadow(
-                                  color: dotColor.withOpacity(
-                                      0.3 + 0.3 * pulseController.value),
+                                  color: dotColor.withValues(
+                                      alpha: 0.3 + 0.3 * pulseController.value),
                                   blurRadius:
                                       8 + 8 * pulseController.value,
                                   spreadRadius: 2 * pulseController.value,
@@ -486,9 +513,9 @@ class _TimelineStep extends StatelessWidget {
                               painter: _DashedLinePainter(
                                 color: isDark
                                     ? AppColors.darkTextTertiary
-                                        .withOpacity(0.2)
+                                        .withValues(alpha: 0.2)
                                     : AppColors.lightTextTertiary
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                               ),
                               child: const SizedBox(width: 2),
                             )
@@ -526,7 +553,7 @@ class _TimelineStep extends StatelessWidget {
                                 isActive ? FontWeight.w800 : FontWeight.w600,
                             color: isPending
                                 ? theme.colorScheme.onSurface
-                                    .withOpacity(0.4)
+                                    .withValues(alpha: 0.4)
                                 : theme.colorScheme.onSurface,
                           ),
                         ),
@@ -548,7 +575,7 @@ class _TimelineStep extends StatelessWidget {
                     stage.description,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: isPending
-                          ? theme.colorScheme.onSurface.withOpacity(0.3)
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
                           : isDark
                               ? AppColors.darkTextSecondary
                               : AppColors.lightTextSecondary,
@@ -566,7 +593,7 @@ class _TimelineStep extends StatelessWidget {
                         color: (isDark
                                 ? AppColors.darkInfo
                                 : AppColors.lightInfo)
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                         borderRadius:
                             BorderRadius.circular(AppDimensions.radiusSm),
                       ),

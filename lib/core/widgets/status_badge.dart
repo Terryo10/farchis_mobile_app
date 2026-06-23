@@ -18,16 +18,16 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case AppConstants.bookingStatusConfirmed:
       case AppConstants.bookingStatusReady:
-        return AppColors.lightSuccess.withOpacity(0.2);
+        return AppColors.lightSuccess.withValues(alpha: 0.2);
       case AppConstants.bookingStatusInProgress:
-        return AppColors.lightInfo.withOpacity(0.2);
+        return AppColors.lightInfo.withValues(alpha: 0.2);
       case AppConstants.bookingStatusCompleted:
-        return AppColors.lightSuccess.withOpacity(0.2);
+        return AppColors.lightSuccess.withValues(alpha: 0.2);
       case AppConstants.bookingStatusCancelled:
-        return AppColors.lightError.withOpacity(0.2);
+        return AppColors.lightError.withValues(alpha: 0.2);
       case AppConstants.bookingStatusPending:
       case AppConstants.bookingStatusInQueue:
-        return AppColors.lightWarning.withOpacity(0.2);
+        return AppColors.lightWarning.withValues(alpha: 0.2);
       default:
         return AppColors.lightBorder;
     }

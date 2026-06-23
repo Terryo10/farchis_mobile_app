@@ -4,26 +4,26 @@ class AppColors {
   AppColors._();
 
   // Monochromatic Navy & Silver Palette
-  static const Color navyDarkest = Color(0xFF050A12);
-  static const Color navyDark = Color(0xFF09162A);
-  static const Color navyPrimary = Color(0xFF10213B);
-  static const Color navyLight = Color(0xFF1E3255);
-  static const Color silverLight = Color(0xFFF1F5F9);
+  static const Color navyDarkest = Color(0xFF0A1321); // Darker shade for contrast
+  static const Color navyDark = Color(0xFF111F36);
+  static const Color navyPrimary = Color(0xFF182B49); // The requested color
+  static const Color navyLight = Color(0xFF2C446B);
+  static const Color silverLight = Color(0xFFF5F6FA); // Exact background from screenshot
   static const Color silver = Color(0xFFCBD5E1);
   static const Color silverDark = Color(0xFF94A3B8);
 
   // Light Theme
   static const Color lightBackground = silverLight;
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightPrimary = navyDark;
-  static const Color lightAccent = navyPrimary;
+  static const Color lightPrimary = navyPrimary;
+  static const Color lightAccent = navyLight;
   static const Color lightError = Color(0xFFDC2626);
   static const Color lightOnPrimary = Color(0xFFFFFFFF);
   static const Color lightTextPrimary = navyDarkest;
   static const Color lightTextSecondary = Color(0xFF475569);
   static const Color lightTextTertiary = silverDark;
   static const Color lightBorder = Color(0xFFE2E8F0);
-  static const Color lightDivider = Color(0xFFF1F5F9);
+  static const Color lightDivider = Color(0xFFE2E8F0);
   static const Color lightSuccess = Color(0xFF10B981);
   static const Color lightWarning = Color(0xFFF59E0B);
   static const Color lightInfo = Color(0xFF3B82F6);
@@ -38,7 +38,7 @@ class AppColors {
   static const Color darkTextPrimary = silverLight;
   static const Color darkTextSecondary = silver;
   static const Color darkTextTertiary = silverDark;
-  static const Color darkBorder = navyLight;
+  static const Color darkBorder = navyPrimary;
   static const Color darkDivider = navyPrimary;
   static const Color darkSuccess = Color(0xFF34D399);
   static const Color darkWarning = Color(0xFFFBBF24);

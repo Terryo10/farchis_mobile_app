@@ -200,23 +200,23 @@ class _ReferralScreenState extends State<ReferralScreen>
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    AppColors.navyLight.withOpacity(0.4),
-                    AppColors.navyDark.withOpacity(0.6),
+                    AppColors.navyLight.withValues(alpha: 0.4),
+                    AppColors.navyDark.withValues(alpha: 0.6),
                   ]
                 : [
-                    AppColors.navyPrimary.withOpacity(0.1),
-                    AppColors.navyDark.withOpacity(0.08),
+                    AppColors.navyPrimary.withValues(alpha: 0.1),
+                    AppColors.navyDark.withValues(alpha: 0.08),
                   ],
           ),
           border: Border.all(
             color: (isDark ? AppColors.darkInfo : AppColors.lightInfo)
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
               color: (isDark ? AppColors.darkInfo : AppColors.lightInfo)
-                  .withOpacity(0.15),
+                  .withValues(alpha: 0.15),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -243,12 +243,12 @@ class _ReferralScreenState extends State<ReferralScreen>
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: (isDark ? AppColors.black : AppColors.navyDarkest)
-                .withOpacity(0.05),
+                .withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -259,7 +259,7 @@ class _ReferralScreenState extends State<ReferralScreen>
           Text(
             'Your Referral Code',
             style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               letterSpacing: 1,
             ),
           ),
@@ -278,12 +278,12 @@ class _ReferralScreenState extends State<ReferralScreen>
               ),
               border: Border.all(
                 color: (isDark ? AppColors.darkInfo : AppColors.lightInfo)
-                    .withOpacity(0.4),
+                    .withValues(alpha: 0.4),
                 width: 1.5,
                 strokeAlign: BorderSide.strokeAlignInside,
               ),
               color: (isDark ? AppColors.darkInfo : AppColors.lightInfo)
-                  .withOpacity(0.06),
+                  .withValues(alpha: 0.06),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -352,7 +352,7 @@ class _ReferralScreenState extends State<ReferralScreen>
       _ShareOption(
         icon: Icons.more_horiz_rounded,
         label: 'More',
-        color: theme.colorScheme.onSurface.withOpacity(0.6),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
       ),
     ];
 
@@ -391,9 +391,9 @@ class _ReferralScreenState extends State<ReferralScreen>
                   height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: option.color.withOpacity(isDark ? 0.2 : 0.1),
+                    color: option.color.withValues(alpha: isDark ? 0.2 : 0.1),
                     border: Border.all(
-                      color: option.color.withOpacity(0.3),
+                      color: option.color.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Icon(
@@ -406,7 +406,7 @@ class _ReferralScreenState extends State<ReferralScreen>
                 Text(
                   option.label,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -483,14 +483,14 @@ class _ReferralScreenState extends State<ReferralScreen>
                       ),
                       border: Border.all(
                         color: theme.colorScheme.outline
-                            .withOpacity(0.15),
+                            .withValues(alpha: 0.15),
                       ),
                       boxShadow: [
                         BoxShadow(
                           color: (isDark
                                   ? AppColors.black
                                   : AppColors.navyDarkest)
-                              .withOpacity(0.04),
+                              .withValues(alpha: 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

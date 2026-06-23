@@ -5,7 +5,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
 import '../../../core/widgets/farchis_text_field.dart';
-import '../../router/app_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_event.dart';
+import '../../../blocs/auth/auth_state.dart';
 
 @RoutePage()
 class RegisterScreen extends StatefulWidget {
@@ -21,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _agreedToTerms = false;
 
   late final AnimationController _controller;
@@ -84,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -102,7 +107,14 @@ class _RegisterScreenState extends State<RegisterScreen>
         );
         return;
       }
-      // TODO: Wire up to AuthBloc when ready
+      context.read<AuthBloc>().add(
+        RegisterRequested(
+          name: _nameController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -215,15 +227,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                     // ── Brand ──
                     FadeTransition(
                       opacity: _brandOpacity,
-                      child: Text(
-                        'FARCHIS',
-                        style: GoogleFonts.outfit(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 8,
-                          color: AppColors.silverLight,
-                        ),
-                        semanticsLabel: 'Farchis',
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 60,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Text(
+                            'FARCHIS',
+                            style: GoogleFonts.outfit(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 8,
+                              color: AppColors.silverLight,
+                            ),
+                            semanticsLabel: 'Farchis',
+                          );
+                        },
                       ),
                     ),
 
@@ -355,6 +374,33 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   },
                                 ),
                               ),
+
+                              const SizedBox(height: AppDimensions.lg),
+
+                              // Password
+                              FadeTransition(
+                                opacity: _field3Opacity,
+                                child: FarchisTextField(
+                                  controller: _passwordController,
+                                  label: 'Password',
+                                  hint: 'Enter your password',
+                                  obscureText: true,
+                                  textInputAction: TextInputAction.done,
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: AppDimensions.iconSm,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter a password';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'Password must be at least 6 characters';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -381,12 +427,19 @@ class _RegisterScreenState extends State<RegisterScreen>
                       opacity: _bottomOpacity,
                       child: SizedBox(
                         width: double.infinity,
-                        child: FarchisButton(
-                          label: 'Create Account',
-                          variant: ButtonVariant.primary,
-                          size: ButtonSize.large,
-                          width: double.infinity,
-                          onPressed: _onCreateAccount,
+                        child: BlocBuilder<AuthBloc, AuthState>(
+                          builder: (context, state) {
+                            if (state is AuthLoading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            return FarchisButton(
+                              label: 'Create Account',
+                              variant: ButtonVariant.primary,
+                              size: ButtonSize.large,
+                              width: double.infinity,
+                              onPressed: _onCreateAccount,
+                            );
+                          },
                         ),
                       ),
                     ),

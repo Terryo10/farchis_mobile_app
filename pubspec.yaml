@@ -66,3 +66,17 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/images/logo.png"
+  android_12:
+    image: "assets/images/logo.png"
+    icon_background_color: "#ffffff"

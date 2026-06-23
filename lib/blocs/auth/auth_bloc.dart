@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../core/error/failures.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -67,7 +68,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       GoogleSignInRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      final googleSignIn = GoogleSignIn();
+      final googleSignIn = GoogleSignIn(
+        clientId: '601498933164-h445r9l8f82vq35hie26plki6n061qk1.apps.googleusercontent.com',
+        // Web Client ID required to get the id_token on Android
+        serverClientId: '601498933164-svtu2ol1nt1uvficg0ljuclk80jtbsof.apps.googleusercontent.com',
+      );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         emit(Unauthenticated());
@@ -88,7 +93,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         onFailure: (failure) => emit(AuthFailure(failure)),
       );
     } catch (e) {
-      emit(Unauthenticated());
+      emit(AuthFailure(Failure.unknown(e.toString())));
     }
   }
 

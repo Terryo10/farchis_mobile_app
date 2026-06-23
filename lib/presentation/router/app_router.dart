@@ -1,4 +1,6 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
+import '../../data/models/booking_model.dart';
 import 'auth_guard.dart';
 import '../../data/models/notification_model.dart';
 import '../screens/splash_screen.dart';

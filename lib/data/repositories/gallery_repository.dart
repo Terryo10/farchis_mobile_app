@@ -22,16 +22,16 @@ class GalleryRepository {
   FailureResult<T> _handleError<T>(Object e) {
     if (e is ValidationException) {
       final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));
-      return Result.failure(Failure.validation(errors)) as FailureResult<T>;
+      return FailureResult<T>(Failure.validation(errors));
     } else if (e is UnauthorizedException) {
-      return Result.failure(Failure.unauthorized(e.message)) as FailureResult<T>;
+      return FailureResult<T>(Failure.unauthorized(e.message));
     } else if (e is NetworkException) {
-      return Result.failure(Failure.network(e.message)) as FailureResult<T>;
+      return FailureResult<T>(Failure.network(e.message));
     } else if (e is NotFoundException) {
-      return Result.failure(Failure.notFound(e.message)) as FailureResult<T>;
+      return FailureResult<T>(Failure.notFound(e.message));
     } else if (e is ServerException) {
-      return Result.failure(Failure.server(e.message, statusCode: e.statusCode)) as FailureResult<T>;
+      return FailureResult<T>(Failure.server(e.message, statusCode: e.statusCode));
     }
-    return Result.failure(Failure.unknown(e.toString())) as FailureResult<T>;
+    return FailureResult<T>(Failure.unknown(e.toString()));
   }
 }

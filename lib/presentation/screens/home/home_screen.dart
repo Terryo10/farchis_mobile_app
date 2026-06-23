@@ -3,10 +3,18 @@ import 'dart:ui';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/booking/booking_bloc.dart';
+import '../../../data/models/booking_model.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../router/app_router.dart';
+import '../../../blocs/promotion/promotion_bloc.dart';
+import '../../../blocs/promotion/promotion_event.dart';
+import '../../../blocs/promotion/promotion_state.dart';
+import '../../../data/models/promotion_model.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -66,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     _staggerController.forward();
+    context.read<PromotionBloc>().add(const GetPromotionsEvent());
   }
 
   @override
@@ -170,27 +179,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: AppDimensions.xs),
                   Text(
-                    'Welcome to Farchis',
+                    'Welcome to Farchis Automotive',
                     style: theme.textTheme.displaySmall?.copyWith(
                       color: AppColors.white,
                       letterSpacing: 1.0,
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.xs),
-                  Text(
-                    'Automotive',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: const Color(0xB3FFFFFF),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
                   const SizedBox(height: AppDimensions.xxl),
                   Row(
                     children: [
-                      _GlassStatusChip(
-                        icon: Icons.stars_rounded,
-                        label: 'Guest',
-                        brightness: 1.0,
+                      GestureDetector(
+                        onTap: () => context.router.push(const ProfileRoute()),
+                        child: _GlassStatusChip(
+                          icon: Icons.person_outline_rounded,
+                          label: 'Guest — sign in',
+                          brightness: 1.0,
+                        ),
                       ),
                       const SizedBox(width: AppDimensions.md),
                       _GlassStatusChip(
@@ -215,28 +219,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           tooltip: 'Notifications',
         ),
         const SizedBox(width: AppDimensions.xs),
-        Padding(
-          padding: const EdgeInsets.only(right: AppDimensions.md),
-          child: Semantics(
-            label: 'Profile',
-            child: Container(
-              width: AppDimensions.avatarSmall,
-              height: AppDimensions.avatarSmall,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0x33FFFFFF), // white20
-                border: Border.all(
-                  color: const Color(0x4DFFFFFF), // white30
-                ),
-              ),
-              child: const Icon(
-                Icons.person_rounded,
-                size: AppDimensions.iconXs,
-                color: AppColors.white,
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -253,12 +235,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         onTap: () => context.router.push(const CreateBookingRoute()),
       ),
       _ActionCardData(
-        icon: Icons.map_outlined,
-        label: 'Find Driver',
-        onTap: () => context.router.push(const DriverConvenienceMapRoute()),
+        icon: Icons.local_shipping_outlined,
+        label: 'Request pickup',
+        onTap: () => context.router.push(DriverConvenienceMapRoute()),
       ),
       _ActionCardData(
-        icon: Icons.card_giftcard_rounded,
+        icon: Icons.confirmation_num_outlined,
         label: 'Scratch Card',
         onTap: () => context.router.push(const ScratchCardRoute()),
       ),
@@ -309,27 +291,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildRecentBookings(
       BuildContext context, ThemeData theme, bool isDark) {
-    final bookings = [
-      _MockBooking(
-        service: 'Oil Change',
-        date: 'Jun 18, 2026',
-        status: 'completed',
-        icon: Icons.oil_barrel_outlined,
-      ),
-      _MockBooking(
-        service: 'Full Detailing',
-        date: 'Jun 22, 2026',
-        status: 'in_progress',
-        icon: Icons.auto_awesome_outlined,
-      ),
-      _MockBooking(
-        service: 'Brake Inspection',
-        date: 'Jun 25, 2026',
-        status: 'pending',
-        icon: Icons.handyman_outlined,
-      ),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -341,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Text('Recent Bookings', style: theme.textTheme.titleLarge),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.router.push(const BookingListRoute()),
                 style: TextButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
                   padding: EdgeInsets.zero,
@@ -351,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Text(
                   'View All',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: isDark ? AppColors.darkInfo : AppColors.lightInfo,
+                    color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
                   ),
                 ),
               ),
@@ -359,14 +320,64 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
         const SizedBox(height: AppDimensions.md),
-        ListView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-          children: bookings
-              .map((b) => _BookingCard(booking: b, isDark: isDark))
-              .toList(),
+        BlocBuilder<BookingBloc, BookingState>(
+          builder: (context, state) {
+            if (state is BookingLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is BookingsLoaded) {
+              final bookings = state.active.take(3).toList();
+              if (bookings.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppDimensions.xl),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.navyDark : AppColors.white,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                      border: Border.all(
+                        color: isDark ? AppColors.navyLight : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 48,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        Text(
+                          'No recent bookings',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        Text(
+                          'Your booking history will appear here',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return ListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                children: bookings
+                    .map((b) => _BookingCard(booking: b, isDark: isDark))
+                    .toList(),
+              );
+            }
+            return const SizedBox();
+          },
         ),
       ],
     );
@@ -378,30 +389,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildSpecialOffers(
       BuildContext context, ThemeData theme, bool isDark) {
-    final offers = [
-      _MockOffer(
-        title: '20% Off First Service',
-        subtitle: 'New customers enjoy a premium discount on any service.',
-        gradient: [AppColors.navyPrimary, AppColors.navyLight],
-      ),
-      _MockOffer(
-        title: 'Free Interior Clean',
-        subtitle: 'Book a full detailing package and get interior free.',
-        gradient: [
-          AppColors.navyDark,
-          isDark ? AppColors.navyLight : AppColors.navyPrimary,
-        ],
-      ),
-      _MockOffer(
-        title: 'Loyalty Bonus Points',
-        subtitle: 'Earn 2× points on all bookings this month.',
-        gradient: [
-          AppColors.navyLight,
-          isDark ? AppColors.navyDark : AppColors.navyPrimary,
-        ],
-      ),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -411,25 +398,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Text('Special Offers', style: theme.textTheme.titleLarge),
         ),
         const SizedBox(height: AppDimensions.md),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.xxl),
-            itemCount: offers.length,
-            itemBuilder: (context, index) {
-              final offer = offers[index];
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: index < offers.length - 1
-                      ? AppDimensions.lg
-                      : 0,
+        BlocBuilder<PromotionBloc, PromotionState>(
+          builder: (context, state) {
+            if (state is PromotionLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is PromotionsLoaded) {
+              final offers = state.promotions;
+              if (offers.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                  child: Text('No special offers at the moment', style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  )),
+                );
+              }
+              return SizedBox(
+                height: 140,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.xxl),
+                  itemCount: offers.length,
+                  itemBuilder: (context, index) {
+                    final offer = offers[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: index < offers.length - 1
+                            ? AppDimensions.lg
+                            : 0,
+                      ),
+                      child: _OfferCard(offer: offer, isDark: isDark),
+                    );
+                  },
                 ),
-                child: _OfferCard(offer: offer),
               );
-            },
-          ),
+            } else if (state is PromotionLoadFailed) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                child: Text('Failed to load special offers'),
+              );
+            }
+            return const SizedBox();
+          },
         ),
       ],
     );
@@ -614,22 +624,8 @@ class _ActionCardState extends State<_ActionCard> {
 // Booking Card
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _MockBooking {
-  final String service;
-  final String date;
-  final String status;
-  final IconData icon;
-
-  const _MockBooking({
-    required this.service,
-    required this.date,
-    required this.status,
-    required this.icon,
-  });
-}
-
 class _BookingCard extends StatelessWidget {
-  final _MockBooking booking;
+  final BookingModel booking;
   final bool isDark;
 
   const _BookingCard({required this.booking, required this.isDark});
@@ -644,7 +640,7 @@ class _BookingCard extends StatelessWidget {
         color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         child: InkWell(
-          onTap: () {},
+          onTap: () => context.router.push(JobTrackerRoute(booking: booking)),
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           splashColor: isDark
               ? const Color(0x1AFFFFFF)
@@ -669,7 +665,7 @@ class _BookingCard extends StatelessWidget {
                         BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                   child: Icon(
-                    booking.icon,
+                    Icons.build_circle_outlined,
                     size: AppDimensions.iconMd,
                     color: theme.colorScheme.primary,
                   ),
@@ -680,12 +676,12 @@ class _BookingCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        booking.service,
+                        booking.service.name,
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppDimensions.xs),
                       Text(
-                        booking.date,
+                        '${booking.bookingDate.toLocal().toString().split(' ')[0]} ${booking.bookingTime}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppColors.darkTextSecondary
@@ -696,7 +692,7 @@ class _BookingCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppDimensions.sm),
-                StatusBadge(status: booking.status, compact: true),
+                StatusBadge(status: booking.status.name, compact: true),
                 const SizedBox(width: AppDimensions.sm),
                 Icon(
                   Icons.chevron_right_rounded,
@@ -714,26 +710,15 @@ class _BookingCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 // Offer Card
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _MockOffer {
-  final String title;
-  final String subtitle;
-  final List<Color> gradient;
-
-  const _MockOffer({
-    required this.title,
-    required this.subtitle,
-    required this.gradient,
-  });
-}
+// ===========================================================================
 
 class _OfferCard extends StatelessWidget {
-  final _MockOffer offer;
+  final PromotionModel offer;
+  final bool isDark;
 
-  const _OfferCard({required this.offer});
+  const _OfferCard({required this.offer, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +737,10 @@ class _OfferCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: offer.gradient,
+                colors: [
+                  AppColors.navyPrimary,
+                  isDark ? AppColors.navyLight : AppColors.navyDark,
+                ],
               ),
             ),
             child: Padding(
@@ -773,7 +761,7 @@ class _OfferCard extends StatelessWidget {
                       ),
                       const SizedBox(height: AppDimensions.xs),
                       Text(
-                        offer.subtitle,
+                        offer.body,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(

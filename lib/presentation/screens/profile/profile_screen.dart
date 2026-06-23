@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
 import '../../../blocs/auth/auth_event.dart';
+import '../../../blocs/theme/theme_cubit.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
@@ -22,7 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
-  bool _darkModeEnabled = false;
 
   @override
   void initState() {
@@ -93,7 +94,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _SettingsItem(
                             icon: Icons.directions_car_outlined,
                             label: 'My Vehicles',
-                            onTap: () {},
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (context) => const _VehicleManagementForm(),
+                              );
+                            },
                           ),
                           _SettingsItem(
                             icon: Icons.payment_rounded,
@@ -152,25 +159,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                         const SizedBox(height: AppDimensions.xxxl),
 
                         // Logout button
-                        Center(
-                          child: FarchisButton(
-                            label: 'Logout',
-                            variant: ButtonVariant.text,
-                            icon: Icon(
-                              Icons.logout_rounded,
-                              size: AppDimensions.iconSm,
-                              color: isDark
-                                  ? AppColors.darkError
-                                  : AppColors.lightError,
-                            ),
-                            onPressed: () {
-                              context
-                                  .read<AuthBloc>()
-                                  .add(LogoutRequested());
-                              context.router
-                                  .replaceAll([const LoginRoute()]);
-                            },
-                          ),
+                        BlocBuilder<AuthBloc, AuthState>(
+                          builder: (context, state) {
+                            if (state is Authenticated) {
+                              return Center(
+                                child: FarchisButton(
+                                  label: 'Logout',
+                                  variant: ButtonVariant.text,
+                                  icon: Icon(
+                                    Icons.logout_rounded,
+                                    size: AppDimensions.iconSm,
+                                    color: isDark
+                                        ? AppColors.darkError
+                                        : AppColors.lightError,
+                                  ),
+                                  onPressed: () {
+                                    context
+                                        .read<AuthBloc>()
+                                        .add(LogoutRequested());
+                                    context.router
+                                        .replaceAll([const LoginRoute()]);
+                                  },
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
                         ),
 
                         const SizedBox(height: 120),
@@ -257,16 +271,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                     end: Alignment.bottomRight,
                     colors: [
                       AppColors.navyLight,
-                      AppColors.navyPrimary.withOpacity(0.8),
+                      AppColors.navyPrimary.withValues(alpha: 0.8),
                     ],
                   ),
                   border: Border.all(
-                    color: AppColors.tierGold.withOpacity(0.6),
+                    color: AppColors.tierGold.withValues(alpha: 0.6),
                     width: 3,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.black.withOpacity(0.3),
+                      color: AppColors.black.withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -279,68 +293,106 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
 
-              const SizedBox(height: AppDimensions.lg),
-
-              // Name
-              Text(
-                'John Doe',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: AppDimensions.xs),
-
-              // Email
-              Text(
-                'john.doe@example.com',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.silverDark,
-                ),
-              ),
-
-              const SizedBox(height: AppDimensions.md),
-
-              // Loyalty badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.lg,
-                  vertical: AppDimensions.sm,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusCircle,
-                  ),
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.tierGold.withOpacity(0.3),
-                      AppColors.tierGold.withOpacity(0.15),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: AppColors.tierGold.withOpacity(0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.workspace_premium_rounded,
-                      size: AppDimensions.iconSm,
-                      color: AppColors.tierGold,
+              // User Info from AuthBloc
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  if (state is Authenticated) {
+                    final user = state.user;
+                    final tierName = user.loyaltyTier != null 
+                        ? '${user.loyaltyTier!.name.substring(0, 1).toUpperCase()}${user.loyaltyTier!.name.substring(1)} Member'
+                        : 'Member';
+                    
+                    return Column(
+                      children: [
+                        // Name
+                        Text(
+                          user.name,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimensions.xs),
+                        // Email
+                        Text(
+                          user.email,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.silverDark,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        // Loyalty badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.lg,
+                            vertical: AppDimensions.sm,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusCircle,
+                            ),
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.tierGold.withValues(alpha: 0.3),
+                                AppColors.tierGold.withValues(alpha: 0.15),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: AppColors.tierGold.withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.workspace_premium_rounded,
+                                size: AppDimensions.iconSm,
+                                color: AppColors.tierGold,
+                              ),
+                              const SizedBox(width: AppDimensions.sm),
+                              Text(
+                                tierName,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: AppColors.tierGold,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  if (state is Unauthenticated || state is AuthInitial) {
+                    return Column(
+                      children: [
+                        Text(
+                          'Guest',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        FarchisButton(
+                          label: 'Sign In / Register',
+                          onPressed: () {
+                            context.router.push(const LoginRoute());
+                          },
+                        ),
+                      ],
+                    );
+                  }
+                  
+                  // Fallback / Loading
+                  return const SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.white),
                     ),
-                    const SizedBox(width: AppDimensions.sm),
-                    Text(
-                      'Gold Member',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.tierGold,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -356,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Text(
         title.toUpperCase(),
         style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           letterSpacing: 1.2,
         ),
       ),
@@ -374,12 +426,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.3),
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
             color: (isDark ? AppColors.black : AppColors.navyDarkest)
-                .withOpacity(0.04),
+                .withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -406,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: Divider(
                     height: AppDimensions.dividerThickness,
                     thickness: AppDimensions.dividerThickness,
-                    color: theme.colorScheme.outline.withOpacity(0.15),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.15),
                   ),
                 ),
             ],
@@ -438,8 +490,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(
-                    isDark ? 0.15 : 0.08,
+                  color: theme.colorScheme.primary.withValues(
+                    alpha: isDark ? 0.15 : 0.08,
                   ),
                   borderRadius: BorderRadius.circular(
                     AppDimensions.radiusSm,
@@ -448,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Icon(
                   item.icon,
                   size: AppDimensions.iconSm,
-                  color: theme.colorScheme.primary.withOpacity(0.8),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(width: AppDimensions.md),
@@ -477,7 +529,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Icon(
                     Icons.chevron_right_rounded,
                     size: AppDimensions.iconMd,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
             ],
           ),
@@ -487,14 +539,19 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildDarkModeSwitch(ThemeData theme, bool isDark) {
-    return Switch.adaptive(
-      value: _darkModeEnabled,
-      onChanged: (value) {
-        setState(() {
-          _darkModeEnabled = value;
-        });
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeMode) {
+        final isDarkMode = themeMode == ThemeMode.dark ||
+            (themeMode == ThemeMode.system &&
+                MediaQuery.of(context).platformBrightness == Brightness.dark);
+        return Switch.adaptive(
+          value: isDarkMode,
+          onChanged: (value) {
+            context.read<ThemeCubit>().toggleTheme();
+          },
+          activeColor: isDark ? AppColors.darkInfo : AppColors.lightInfo,
+        );
       },
-      activeColor: isDark ? AppColors.darkInfo : AppColors.lightInfo,
     );
   }
 }
@@ -513,4 +570,78 @@ class _SettingsItem {
     this.onTap,
     this.trailing,
   });
+}
+
+class _VehicleManagementForm extends StatefulWidget {
+  const _VehicleManagementForm();
+
+  @override
+  State<_VehicleManagementForm> createState() => _VehicleManagementFormState();
+}
+
+class _VehicleManagementFormState extends State<_VehicleManagementForm> {
+  final _makeController = TextEditingController();
+  final _modelController = TextEditingController();
+  final _yearController = TextEditingController();
+  final _plateController = TextEditingController();
+
+  @override
+  void dispose() {
+    _makeController.dispose();
+    _modelController.dispose();
+    _yearController.dispose();
+    _plateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: AppDimensions.lg,
+        right: AppDimensions.lg,
+        top: AppDimensions.xl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Manage Vehicle', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppDimensions.lg),
+          TextField(
+            controller: _makeController,
+            decoration: const InputDecoration(labelText: 'Make', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: AppDimensions.md),
+          TextField(
+            controller: _modelController,
+            decoration: const InputDecoration(labelText: 'Model', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: AppDimensions.md),
+          TextField(
+            controller: _yearController,
+            decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: AppDimensions.md),
+          TextField(
+            controller: _plateController,
+            decoration: const InputDecoration(labelText: 'Plate', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: AppDimensions.xl),
+          SizedBox(
+            width: double.infinity,
+            child: FarchisButton(
+              label: 'Save Vehicle',
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ),
+          const SizedBox(height: AppDimensions.xl),
+        ],
+      ),
+    );
+  }
 }

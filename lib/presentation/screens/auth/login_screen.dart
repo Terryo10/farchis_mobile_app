@@ -30,6 +30,9 @@ class _LoginScreenState extends State<LoginScreen>
   late final Animation<Offset> _buttonSlide;
   late final Animation<double> _footerOpacity;
 
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +93,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -106,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.failure.message),
-                backgroundColor: AppColors.darkError,
+                backgroundColor: AppColors.lightError,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
@@ -122,17 +127,26 @@ class _LoginScreenState extends State<LoginScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.navyDark, AppColors.navyDarkest],
+              colors: [AppColors.silverLight, AppColors.white],
               stops: [0.0, 1.0],
             ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.xxl,
-              ),
-              child: Column(
-                children: [
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimensions.xxl,
+                        ),
+                        child: Column(
+                          children: [
                   const Spacer(flex: 2),
 
                   // ── Brand Section ──
@@ -146,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                   const SizedBox(height: AppDimensions.xxl),
 
-                  // ── Silver Accent Line ──
+                  // ── Navy Accent Line ──
                   FadeTransition(
                     opacity: _accentOpacity,
                     child: Container(
@@ -155,9 +169,9 @@ class _LoginScreenState extends State<LoginScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.silverDark.withValues(alpha: 0.0),
-                            AppColors.silver.withValues(alpha: 0.7),
-                            AppColors.silverDark.withValues(alpha: 0.0),
+                            AppColors.navyLight.withValues(alpha: 0.0),
+                            AppColors.navyPrimary.withValues(alpha: 0.5),
+                            AppColors.navyLight.withValues(alpha: 0.0),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(1),
@@ -176,7 +190,51 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
 
-                  const Spacer(flex: 1),
+                  // ── Email Login Form ──
+                  SlideTransition(
+                    position: _buttonSlide,
+                    child: FadeTransition(
+                      opacity: _buttonOpacity,
+                      child: BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          return _LoginForm(
+                            emailController: _emailController,
+                            passwordController: _passwordController,
+                            isLoading: state is AuthLoading,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppDimensions.xl),
+
+                  // ── OR Separator ──
+                  SlideTransition(
+                    position: _buttonSlide,
+                    child: FadeTransition(
+                      opacity: _buttonOpacity,
+                      child: Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.md),
+                            child: Text(
+                              'OR',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.lightTextSecondary,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppDimensions.xl),
 
                   // ── Google Sign-In Button ──
                   SlideTransition(
@@ -211,8 +269,13 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
 
                   const Spacer(flex: 1),
-                ],
-              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -230,29 +293,38 @@ class _BrandSection extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // FARCHIS
-        Text(
-          'FARCHIS',
-          style: GoogleFonts.outfit(
-            fontSize: 42,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 12,
-            color: AppColors.silverLight,
-            height: 1.1,
-          ),
-          semanticsLabel: 'Farchis brand name',
-        ),
-        const SizedBox(height: AppDimensions.sm),
-        // AUTOMOTIVE
-        Text(
-          'AUTOMOTIVE',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 6,
-            color: AppColors.silverDark.withValues(alpha: 0.8),
-          ),
-          semanticsLabel: 'Automotive subtitle',
+        Image.asset(
+          'assets/images/logo.png',
+          height: 160,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Column(
+              children: [
+                Text(
+                  'FARCHIS',
+                  style: GoogleFonts.outfit(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 12,
+                    color: AppColors.navyPrimary,
+                    height: 1.1,
+                  ),
+                  semanticsLabel: 'Farchis brand name',
+                ),
+                const SizedBox(height: AppDimensions.sm),
+                Text(
+                  'AUTOMOTIVE CENTER',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 4,
+                    color: AppColors.navyDark.withValues(alpha: 0.8),
+                  ),
+                  semanticsLabel: 'Automotive subtitle',
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -275,7 +347,7 @@ class _WelcomeSection extends StatelessWidget {
           style: GoogleFonts.outfit(
             fontSize: 26,
             fontWeight: FontWeight.w600,
-            color: AppColors.silverLight,
+            color: AppColors.navyDarkest,
             height: 1.3,
           ),
         ),
@@ -285,10 +357,92 @@ class _WelcomeSection extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: AppColors.silverDark.withValues(alpha: 0.7),
+            color: AppColors.lightTextSecondary,
             height: 1.5,
           ),
           textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Email Login Form
+// ─────────────────────────────────────────────
+class _LoginForm extends StatelessWidget {
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool isLoading;
+
+  const _LoginForm({
+    required this.emailController,
+    required this.passwordController,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            prefixIcon: const Icon(Icons.email_outlined, color: AppColors.navyPrimary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: BorderSide(color: AppColors.navyPrimary.withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: BorderSide(color: AppColors.navyPrimary.withValues(alpha: 0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: const BorderSide(color: AppColors.navyPrimary, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppDimensions.md),
+        TextField(
+          controller: passwordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.navyPrimary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: BorderSide(color: AppColors.navyPrimary.withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: BorderSide(color: AppColors.navyPrimary.withValues(alpha: 0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              borderSide: const BorderSide(color: AppColors.navyPrimary, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppDimensions.xl),
+        SizedBox(
+          width: double.infinity,
+          child: FarchisButton(
+            label: 'Sign In',
+            isLoading: isLoading,
+            onPressed: () {
+              final email = emailController.text.trim();
+              final password = passwordController.text;
+              if (email.isNotEmpty && password.isNotEmpty) {
+                context.read<AuthBloc>().add(
+                      LoginRequested(email: email, password: password),
+                    );
+              }
+            },
+          ),
         ),
       ],
     );
@@ -316,8 +470,9 @@ class _GoogleSignInButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.white,
-          foregroundColor: AppColors.navyDarkest,
-          disabledBackgroundColor: AppColors.silver.withValues(alpha: 0.3),
+          foregroundColor: AppColors.navyPrimary,
+          disabledBackgroundColor: AppColors.white.withValues(alpha: 0.5),
+          side: BorderSide(color: AppColors.navyPrimary.withValues(alpha: 0.2)),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -328,13 +483,13 @@ class _GoogleSignInButton extends StatelessWidget {
           ),
         ),
         child: isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 22,
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
                   valueColor: AlwaysStoppedAnimation(
-                    AppColors.navyDarkest.withValues(alpha: 0.6),
+                    AppColors.white,
                   ),
                 ),
               )
@@ -347,7 +502,7 @@ class _GoogleSignInButton extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: AppColors.navyDarkest.withValues(alpha: 0.06),
+                      color: AppColors.navyPrimary.withValues(alpha: 0.05),
                       borderRadius:
                           BorderRadius.circular(AppDimensions.radiusXs),
                     ),
@@ -355,7 +510,7 @@ class _GoogleSignInButton extends StatelessWidget {
                       child: Icon(
                         Icons.g_mobiledata_rounded,
                         size: 22,
-                        color: AppColors.navyDarkest,
+                        color: AppColors.navyPrimary,
                       ),
                     ),
                   ),
@@ -365,7 +520,7 @@ class _GoogleSignInButton extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.navyDarkest,
+                      color: AppColors.navyPrimary,
                       letterSpacing: 0.1,
                     ),
                   ),
@@ -399,7 +554,7 @@ class _RegisterLink extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                color: AppColors.silverDark.withValues(alpha: 0.6),
+                color: AppColors.lightTextSecondary,
               ),
             ),
             Text(
@@ -407,7 +562,7 @@ class _RegisterLink extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.silverLight,
+                color: AppColors.navyPrimary,
               ),
             ),
           ],

@@ -1,6 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_constants.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/booking/booking_bloc.dart';
+import '../../../data/models/booking_model.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -21,52 +24,31 @@ class _BookingListScreenState extends State<BookingListScreen>
 
   static const _filters = ['All', 'Upcoming', 'In Progress', 'Completed'];
 
-  static const _mockBookings = [
-    _MockBooking(
-      icon: Icons.build_circle_outlined,
-      iconColor: AppColors.categoryMaintenance,
-      serviceName: 'Full Service',
-      vehicle: 'BMW 320i • ABC-1234',
-      dateTime: 'Today, 10:30 AM',
-      status: AppConstants.bookingStatusInProgress,
-    ),
-    _MockBooking(
-      icon: Icons.oil_barrel_outlined,
-      iconColor: AppColors.categoryRepair,
-      serviceName: 'Oil Change',
-      vehicle: 'Mercedes C200 • DEF-5678',
-      dateTime: 'Tomorrow, 09:00 AM',
-      status: AppConstants.bookingStatusConfirmed,
-    ),
-    _MockBooking(
-      icon: Icons.auto_awesome_outlined,
-      iconColor: AppColors.categoryDetailing,
-      serviceName: 'Full Detailing',
-      vehicle: 'BMW 320i • ABC-1234',
-      dateTime: 'Jun 25, 2:00 PM',
-      status: AppConstants.bookingStatusPending,
-    ),
-    _MockBooking(
-      icon: Icons.disc_full_outlined,
-      iconColor: AppColors.categoryRepair,
-      serviceName: 'Brake Inspection',
-      vehicle: 'Toyota Hilux • GHI-9012',
-      dateTime: 'Jun 18, 11:00 AM',
-      status: AppConstants.bookingStatusCompleted,
-    ),
-    _MockBooking(
-      icon: Icons.tire_repair_outlined,
-      iconColor: AppColors.categoryCustom,
-      serviceName: 'Tire Rotation',
-      vehicle: 'Mercedes C200 • DEF-5678',
-      dateTime: 'Jun 15, 3:30 PM',
-      status: AppConstants.bookingStatusCompleted,
-    ),
-  ];
+  List<BookingModel> _getFilteredBookings(List<BookingModel> allBookings) {
+    switch (_selectedFilterIndex) {
+      case 1: // Upcoming
+        return allBookings
+            .where((b) =>
+                b.status == BookingStatus.confirmed ||
+                b.status == BookingStatus.pending)
+            .toList();
+      case 2: // In Progress
+        return allBookings
+            .where((b) => b.status == BookingStatus.in_progress)
+            .toList();
+      case 3: // Completed
+        return allBookings
+            .where((b) => b.status == BookingStatus.completed)
+            .toList();
+      default:
+        return allBookings;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    context.read<BookingBloc>().add(LoadBookings());
     _staggerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -79,32 +61,10 @@ class _BookingListScreenState extends State<BookingListScreen>
     super.dispose();
   }
 
-  List<_MockBooking> get _filteredBookings {
-    switch (_selectedFilterIndex) {
-      case 1: // Upcoming
-        return _mockBookings
-            .where((b) =>
-                b.status == AppConstants.bookingStatusConfirmed ||
-                b.status == AppConstants.bookingStatusPending)
-            .toList();
-      case 2: // In Progress
-        return _mockBookings
-            .where((b) => b.status == AppConstants.bookingStatusInProgress)
-            .toList();
-      case 3: // Completed
-        return _mockBookings
-            .where((b) => b.status == AppConstants.bookingStatusCompleted)
-            .toList();
-      default:
-        return _mockBookings;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bookings = _filteredBookings;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -124,58 +84,70 @@ class _BookingListScreenState extends State<BookingListScreen>
           ),
         ),
       ),
-      body: CustomScrollView(
-        slivers: [
-          // --- Custom SliverAppBar ---
-          SliverAppBar(
-            expandedHeight: 140,
-            pinned: true,
-            backgroundColor: isDark ? AppColors.navyDarkest : AppColors.navyPrimary,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      isDark ? AppColors.navyDark : AppColors.navyPrimary,
-                      isDark ? AppColors.navyDarkest : AppColors.navyDark,
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimensions.xxl,
-                      AppDimensions.lg,
-                      AppDimensions.xxl,
-                      AppDimensions.lg,
+      body: BlocBuilder<BookingBloc, BookingState>(
+        builder: (context, state) {
+          List<BookingModel> bookings = [];
+          if (state is BookingsLoaded) {
+            final allBookings = [...state.active, ...state.past];
+            bookings = _getFilteredBookings(allBookings);
+          } else if (state is BookingLoading || state is BookingInitial) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is BookingError) {
+            return Center(child: Text('Failed to load bookings: ${state.failure.message}'));
+          }
+
+          return CustomScrollView(
+            slivers: [
+              // --- Custom SliverAppBar ---
+              SliverAppBar(
+                expandedHeight: 140,
+                pinned: true,
+                backgroundColor: isDark ? AppColors.navyDarkest : AppColors.navyPrimary,
+                automaticallyImplyLeading: false,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          isDark ? AppColors.navyDark : AppColors.navyPrimary,
+                          isDark ? AppColors.navyDarkest : AppColors.navyDark,
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          'My Bookings',
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                          ),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimensions.xxl,
+                          AppDimensions.lg,
+                          AppDimensions.xxl,
+                          AppDimensions.lg,
                         ),
-                        const SizedBox(height: AppDimensions.xs),
-                        Text(
-                          '${_mockBookings.length} total bookings',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white60,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              'My Bookings',
+                              style: theme.textTheme.displaySmall?.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: AppDimensions.xs),
+                            Text(
+                              '${bookings.length} total bookings',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
 
           // --- Filter Chips ---
           SliverToBoxAdapter(
@@ -198,7 +170,7 @@ class _BookingListScreenState extends State<BookingListScreen>
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _filters.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(width: AppDimensions.sm),
                     itemBuilder: (context, index) {
                       final isSelected = _selectedFilterIndex == index;
@@ -303,7 +275,7 @@ class _BookingListScreenState extends State<BookingListScreen>
                           isDark: isDark,
                           theme: theme,
                           onTap: () =>
-                              context.router.push(const JobTrackerRoute()),
+                              context.router.push(JobTrackerRoute(booking: booking)),
                         ),
                       ),
                     );
@@ -312,7 +284,9 @@ class _BookingListScreenState extends State<BookingListScreen>
                 ),
               ),
             ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -336,7 +310,7 @@ class AnimatedBuilder extends AnimatedWidget {
 
 // ---------- Booking Card ----------
 class _BookingCard extends StatefulWidget {
-  final _MockBooking booking;
+  final BookingModel booking;
   final bool isDark;
   final ThemeData theme;
   final VoidCallback onTap;
@@ -374,13 +348,13 @@ class _BookingCardState extends State<_BookingCard> {
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(
               color: widget.isDark
-                  ? AppColors.navyLight.withOpacity(0.4)
+                  ? AppColors.navyLight.withValues(alpha: 0.4)
                   : AppColors.lightBorder,
             ),
             boxShadow: [
               if (!widget.isDark)
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -395,13 +369,13 @@ class _BookingCardState extends State<_BookingCard> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: widget.booking.iconColor.withOpacity(0.12),
+                    color: AppColors.categoryMaintenance.withValues(alpha: 0.12),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                   child: Icon(
-                    widget.booking.icon,
-                    color: widget.booking.iconColor,
+                    Icons.build_circle_outlined,
+                    color: AppColors.categoryMaintenance,
                     size: AppDimensions.iconLg,
                   ),
                 ),
@@ -412,7 +386,7 @@ class _BookingCardState extends State<_BookingCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.booking.serviceName,
+                        widget.booking.service.name,
                         style: widget.theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: widget.theme.colorScheme.onSurface,
@@ -420,7 +394,7 @@ class _BookingCardState extends State<_BookingCard> {
                       ),
                       const SizedBox(height: AppDimensions.xs),
                       Text(
-                        widget.booking.vehicle,
+                        'Booking ID: #${widget.booking.id}',
                         style: widget.theme.textTheme.bodySmall?.copyWith(
                           color: widget.isDark
                               ? AppColors.darkTextSecondary
@@ -439,7 +413,7 @@ class _BookingCardState extends State<_BookingCard> {
                           ),
                           const SizedBox(width: AppDimensions.xs),
                           Text(
-                            widget.booking.dateTime,
+                            '${widget.booking.bookingDate.toLocal().toString().split(' ')[0]} ${widget.booking.bookingTime}',
                             style:
                                 widget.theme.textTheme.bodySmall?.copyWith(
                               fontSize: 11,
@@ -458,7 +432,7 @@ class _BookingCardState extends State<_BookingCard> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     StatusBadge(
-                      status: widget.booking.status,
+                      status: widget.booking.status.name,
                       compact: true,
                     ),
                     const SizedBox(height: AppDimensions.md),
@@ -500,7 +474,7 @@ class _EmptyBookingsView extends StatelessWidget {
               height: 96,
               decoration: BoxDecoration(
                 color: isDark
-                    ? AppColors.navyLight.withOpacity(0.2)
+                    ? AppColors.navyLight.withValues(alpha: 0.2)
                     : AppColors.silverLight,
                 shape: BoxShape.circle,
               ),
@@ -536,21 +510,4 @@ class _EmptyBookingsView extends StatelessWidget {
   }
 }
 
-// ---------- Mock Data Model ----------
-class _MockBooking {
-  final IconData icon;
-  final Color iconColor;
-  final String serviceName;
-  final String vehicle;
-  final String dateTime;
-  final String status;
 
-  const _MockBooking({
-    required this.icon,
-    required this.iconColor,
-    required this.serviceName,
-    required this.vehicle,
-    required this.dateTime,
-    required this.status,
-  });
-}

@@ -1,10 +1,14 @@
-import 'dart:math' as math;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/services/services_bloc.dart';
+import '../../../blocs/services/services_state.dart';
+import '../../../blocs/services/services_event.dart';
+import '../../../data/models/service_model.dart';
 
 @RoutePage()
 class CreateBookingScreen extends StatefulWidget {
@@ -18,7 +22,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     with TickerProviderStateMixin {
   int _currentStep = 0;
   int _selectedServiceIndex = -1;
-  int _selectedDateIndex = -1;
+  DateTime? _selectedDate;
   int _selectedTimeIndex = -1;
 
   late final PageController _pageController;
@@ -26,36 +30,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
 
   static const _stepLabels = ['Select Service', 'Choose Date', 'Confirm'];
 
-  static const _services = [
-    _ServiceCategory(
-      icon: Icons.build_circle_outlined,
-      name: 'Maintenance',
-      description: 'Regular upkeep & servicing',
-      startingPrice: '\$49',
-      color: AppColors.categoryMaintenance,
-    ),
-    _ServiceCategory(
-      icon: Icons.settings_outlined,
-      name: 'Repair',
-      description: 'Fix mechanical issues',
-      startingPrice: '\$89',
-      color: AppColors.categoryRepair,
-    ),
-    _ServiceCategory(
-      icon: Icons.auto_awesome_outlined,
-      name: 'Detailing',
-      description: 'Interior & exterior shine',
-      startingPrice: '\$59',
-      color: AppColors.categoryDetailing,
-    ),
-    _ServiceCategory(
-      icon: Icons.tune_outlined,
-      name: 'Custom',
-      description: 'Tailored to your needs',
-      startingPrice: '\$79',
-      color: AppColors.categoryCustom,
-    ),
-  ];
+  
 
   static const _timeSlots = [
     '08:00 AM',
@@ -69,6 +44,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
   @override
   void initState() {
     super.initState();
+    context.read<ServicesBloc>().add(const GetServicesEvent());
     _pageController = PageController();
     _fadeController = AnimationController(
       vsync: this,
@@ -100,7 +76,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
       case 0:
         return _selectedServiceIndex >= 0;
       case 1:
-        return _selectedDateIndex >= 0 && _selectedTimeIndex >= 0;
+        return _selectedDate != null && _selectedTimeIndex >= 0;
       default:
         return true;
     }
@@ -201,27 +177,38 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
               ),
             ),
             const SizedBox(height: AppDimensions.xxl),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppDimensions.lg,
-                mainAxisSpacing: AppDimensions.lg,
-                childAspectRatio: 0.88,
-              ),
-              itemCount: _services.length,
-              itemBuilder: (context, index) {
-                final service = _services[index];
-                final isSelected = _selectedServiceIndex == index;
-                return _ServiceCard(
-                  service: service,
-                  isSelected: isSelected,
-                  isDark: isDark,
-                  theme: theme,
-                  onTap: () =>
-                      setState(() => _selectedServiceIndex = index),
-                );
+            BlocBuilder<ServicesBloc, ServicesState>(
+              builder: (context, state) {
+                if (state is ServicesLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is ServicesLoaded) {
+                  final services = state.services;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: AppDimensions.lg,
+                      mainAxisSpacing: AppDimensions.lg,
+                      childAspectRatio: 0.88,
+                    ),
+                    itemCount: services.length,
+                    itemBuilder: (context, index) {
+                      final service = services[index];
+                      final isSelected = _selectedServiceIndex == index;
+                      return _ServiceCard(
+                        service: service,
+                        isSelected: isSelected,
+                        isDark: isDark,
+                        theme: theme,
+                        onTap: () => setState(() => _selectedServiceIndex = index),
+                      );
+                    },
+                  );
+                } else if (state is ServicesLoadFailed) {
+                  return const Center(child: Text('Failed to load services'));
+                }
+                return const SizedBox();
               },
             ),
           ],
@@ -260,13 +247,42 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
               ),
             ),
             const SizedBox(height: AppDimensions.xxl),
-            // Calendar mockup
-            _CalendarMockup(
-              selectedIndex: _selectedDateIndex,
-              isDark: isDark,
-              theme: theme,
-              onDateSelected: (index) =>
-                  setState(() => _selectedDateIndex = index),
+            GestureDetector(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate ?? DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() => _selectedDate = date);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(AppDimensions.lg),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.navyDark : AppColors.lightSurface,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  border: Border.all(
+                    color: isDark ? AppColors.navyLight.withValues(alpha: 0.4) : AppColors.lightBorder,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded, color: theme.colorScheme.primary),
+                    const SizedBox(width: AppDimensions.md),
+                    Text(
+                      _selectedDate == null
+                          ? 'Select Date'
+                          : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: AppDimensions.xxl),
             Text(
@@ -314,7 +330,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                             ? Colors.transparent
                             : isAvailable
                                 ? theme.colorScheme.outline
-                                : theme.colorScheme.outline.withOpacity(0.3),
+                                : theme.colorScheme.outline.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
@@ -327,7 +343,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                             : isAvailable
                                 ? theme.colorScheme.onSurface
                                 : theme.colorScheme.onSurface
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                         fontWeight:
                             isSelected ? FontWeight.w700 : FontWeight.w500,
                       ),
@@ -344,11 +360,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
 
   // ======================== Step 3: Confirmation ========================
   Widget _buildConfirmStep(ThemeData theme, bool isDark) {
-    final service = _selectedServiceIndex >= 0
-        ? _services[_selectedServiceIndex]
-        : null;
-    final date = _selectedDateIndex >= 0
-        ? _getDateString(_selectedDateIndex)
+    final service = _selectedServiceIndex >= 0 ? context.read<ServicesBloc>().state is ServicesLoaded ? (context.read<ServicesBloc>().state as ServicesLoaded).services[_selectedServiceIndex] : null : null;
+    final date = _selectedDate != null
+        ? '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}'
         : 'Not selected';
     final time = _selectedTimeIndex >= 0
         ? _timeSlots[_selectedTimeIndex]
@@ -390,12 +404,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                 borderRadius:
                     BorderRadius.circular(AppDimensions.radiusLg),
                 border: Border.all(
-                  color: isDark ? AppColors.navyLight.withOpacity(0.4) : AppColors.lightBorder,
+                  color: isDark ? AppColors.navyLight.withValues(alpha: 0.4) : AppColors.lightBorder,
                 ),
                 boxShadow: [
                   if (!isDark)
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -411,14 +425,14 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: service.color.withOpacity(0.12),
+                          color: AppColors.categoryMaintenance.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(
                             AppDimensions.radiusMd,
                           ),
                         ),
                         child: Icon(
-                          service.icon,
-                          color: service.color,
+                          Icons.build_circle_outlined,
+                          color: AppColors.categoryMaintenance,
                           size: AppDimensions.iconLg,
                         ),
                       ),
@@ -440,7 +454,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                     ],
                     const SizedBox(height: AppDimensions.xxl),
                     Divider(
-                      color: theme.colorScheme.outline.withOpacity(0.5),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     _ConfirmRow(
@@ -468,7 +482,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     Divider(
-                      color: theme.colorScheme.outline.withOpacity(0.5),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     Row(
@@ -482,7 +496,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                           ),
                         ),
                         Text(
-                          service?.startingPrice ?? '--',
+                          '\$${service?.price ?? 0}',
                           style: theme.textTheme.headlineMedium?.copyWith(
                             color: isDark
                                 ? AppColors.darkSuccess
@@ -514,7 +528,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
         color: isDark ? AppColors.navyDark : AppColors.lightSurface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.navyLight.withOpacity(0.3) : AppColors.lightBorder,
+            color: isDark ? AppColors.navyLight.withValues(alpha: 0.3) : AppColors.lightBorder,
           ),
         ),
       ),
@@ -565,15 +579,6 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     );
   }
 
-  String _getDateString(int index) {
-    final now = DateTime.now();
-    final day = now.add(Duration(days: index + 1));
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[day.month - 1]} ${day.day}, ${day.year}';
-  }
 }
 
 // =================== Step Indicator ===================
@@ -604,7 +609,7 @@ class _StepIndicator extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isCompleted
                     ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
-                    : theme.colorScheme.outline.withOpacity(0.3),
+                    : theme.colorScheme.outline.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -671,7 +676,7 @@ class _StepDot extends StatelessWidget {
                       ? (isDark
                           ? AppColors.darkPrimary
                           : AppColors.lightPrimary)
-                      : theme.colorScheme.outline.withOpacity(0.4),
+                      : theme.colorScheme.outline.withValues(alpha: 0.4),
               width: 2,
             ),
           ),
@@ -690,7 +695,7 @@ class _StepDot extends StatelessWidget {
                           ? (isDark
                               ? AppColors.darkOnPrimary
                               : AppColors.lightOnPrimary)
-                          : theme.colorScheme.onSurface.withOpacity(0.4),
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -703,7 +708,7 @@ class _StepDot extends StatelessWidget {
             fontSize: 10,
             color: isActive || isCompleted
                 ? theme.colorScheme.onSurface
-                : theme.colorScheme.onSurface.withOpacity(0.4),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.4),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -714,7 +719,7 @@ class _StepDot extends StatelessWidget {
 
 // =================== Service Card ===================
 class _ServiceCard extends StatefulWidget {
-  final _ServiceCategory service;
+  final ServiceModel service;
   final bool isSelected;
   final bool isDark;
   final ThemeData theme;
@@ -758,16 +763,16 @@ class _ServiceCardState extends State<_ServiceCard> {
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(
               color: widget.isSelected
-                  ? widget.service.color
+                  ? AppColors.categoryMaintenance
                   : widget.isDark
-                      ? AppColors.navyLight.withOpacity(0.4)
+                      ? AppColors.navyLight.withValues(alpha: 0.4)
                       : AppColors.lightBorder,
               width: widget.isSelected ? 2 : 1,
             ),
             boxShadow: widget.isSelected
-                ? [
+              ? [
                     BoxShadow(
-                      color: widget.service.color.withOpacity(0.2),
+                      color: AppColors.categoryMaintenance.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -775,7 +780,7 @@ class _ServiceCardState extends State<_ServiceCard> {
                 : [
                     if (!widget.isDark)
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -790,13 +795,13 @@ class _ServiceCardState extends State<_ServiceCard> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: widget.service.color.withOpacity(0.12),
+                    color: AppColors.categoryMaintenance.withValues(alpha: 0.12),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                   child: Icon(
-                    widget.service.icon,
-                    color: widget.service.color,
+                    Icons.build_circle_outlined,
+                    color: AppColors.categoryMaintenance,
                     size: 28,
                   ),
                 ),
@@ -823,9 +828,9 @@ class _ServiceCardState extends State<_ServiceCard> {
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
-                  'From ${widget.service.startingPrice}',
+                  'From ${'\$${widget.service.price}'}',
                   style: widget.theme.textTheme.labelMedium?.copyWith(
-                    color: widget.service.color,
+                    color: AppColors.categoryMaintenance,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -838,179 +843,6 @@ class _ServiceCardState extends State<_ServiceCard> {
   }
 }
 
-// =================== Calendar Mockup ===================
-class _CalendarMockup extends StatelessWidget {
-  final int selectedIndex;
-  final bool isDark;
-  final ThemeData theme;
-  final ValueChanged<int> onDateSelected;
-
-  const _CalendarMockup({
-    required this.selectedIndex,
-    required this.isDark,
-    required this.theme,
-    required this.onDateSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    // Get first day of current month
-    final firstDay = DateTime(now.year, now.month, 1);
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final startWeekday = firstDay.weekday; // 1=Mon ... 7=Sun
-
-    // Available dates (some days after today)
-    final availableDays = <int>{};
-    for (int i = now.day + 1; i <= math.min(now.day + 14, daysInMonth); i++) {
-      if (i % 3 != 0) availableDays.add(i); // skip every 3rd day
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.navyDark : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isDark ? AppColors.navyLight.withOpacity(0.4) : AppColors.lightBorder,
-        ),
-      ),
-      padding: const EdgeInsets.all(AppDimensions.lg),
-      child: Column(
-        children: [
-          // Month header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.chevron_left_rounded,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
-              ),
-              const SizedBox(width: AppDimensions.lg),
-              Text(
-                '${months[now.month - 1]} ${now.year}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.lg),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: theme.colorScheme.onSurface,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.lg),
-          // Day names
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: dayNames
-                .map((d) => SizedBox(
-                      width: 36,
-                      child: Center(
-                        child: Text(
-                          d,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
-                          ),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: AppDimensions.sm),
-          // Day grid
-          ...List.generate(6, (week) {
-            return Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppDimensions.xs / 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(7, (weekday) {
-                  final dayNumber =
-                      week * 7 + weekday + 1 - (startWeekday - 1);
-                  if (dayNumber < 1 || dayNumber > daysInMonth) {
-                    return const SizedBox(width: 36, height: 36);
-                  }
-
-                  final isPast = dayNumber <= now.day;
-                  final isAvailable = availableDays.contains(dayNumber);
-                  final isToday = dayNumber == now.day;
-                  // Map day number to selection index
-                  final selIndex = dayNumber - now.day - 1;
-                  final isSelected = selectedIndex == selIndex && isAvailable;
-
-                  return GestureDetector(
-                    onTap: isAvailable
-                        ? () => onDateSelected(selIndex)
-                        : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (isDark
-                                ? AppColors.darkPrimary
-                                : AppColors.lightPrimary)
-                            : isToday
-                                ? (isDark
-                                        ? AppColors.darkPrimary
-                                        : AppColors.lightPrimary)
-                                    .withOpacity(0.1)
-                                : null,
-                        shape: BoxShape.circle,
-                        border: isToday && !isSelected
-                            ? Border.all(
-                                color: isDark
-                                    ? AppColors.darkPrimary
-                                    : AppColors.lightPrimary,
-                                width: 1.5,
-                              )
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$dayNumber',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 13,
-                            color: isSelected
-                                ? (isDark
-                                    ? AppColors.darkOnPrimary
-                                    : AppColors.lightOnPrimary)
-                                : isPast
-                                    ? theme.colorScheme.onSurface
-                                        .withOpacity(0.2)
-                                    : isAvailable
-                                        ? theme.colorScheme.onSurface
-                                        : theme.colorScheme.onSurface
-                                            .withOpacity(0.3),
-                            fontWeight:
-                                isSelected || isToday
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
 
 // =================== Confirmation Row ===================
 class _ConfirmRow extends StatelessWidget {
@@ -1062,18 +894,3 @@ class _ConfirmRow extends StatelessWidget {
 }
 
 // =================== Data Model ===================
-class _ServiceCategory {
-  final IconData icon;
-  final String name;
-  final String description;
-  final String startingPrice;
-  final Color color;
-
-  const _ServiceCategory({
-    required this.icon,
-    required this.name,
-    required this.description,
-    required this.startingPrice,
-    required this.color,
-  });
-}

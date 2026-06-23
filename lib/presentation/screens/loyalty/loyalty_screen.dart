@@ -2,6 +2,15 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/loyalty/loyalty_bloc.dart';
+import '../../../blocs/loyalty/loyalty_state.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
+import '../../../blocs/loyalty/loyalty_event.dart';
+import '../../../data/models/user_model.dart';
+import '../../../data/models/loyalty_transaction_model.dart';
+
 
 @RoutePage()
 class LoyaltyScreen extends StatefulWidget {
@@ -28,6 +37,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
       curve: Curves.easeOutCubic,
     );
     _animController.forward();
+    context.read<LoyaltyBloc>().add(const GetLoyaltyWalletEvent());
   }
 
   @override
@@ -42,67 +52,86 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context, theme, isDark),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppDimensions.xxl),
+      body: BlocBuilder<LoyaltyBloc, LoyaltyState>(
+        builder: (context, loyaltyState) {
+          if (loyaltyState is LoyaltyLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (loyaltyState is LoyaltyLoadFailed) {
+            return Center(child: Text('Failed to load loyalty data'));
+          }
+          if (loyaltyState is LoyaltyLoaded) {
+            final wallet = loyaltyState.wallet;
+            final transactions = loyaltyState.transactions;
+            return BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, authState) {
+                UserModel? user;
+                if (authState is Authenticated) {
+                  user = authState.user;
+                }
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(context, theme, isDark, wallet.tier.name),
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.lg,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: AppDimensions.xxl),
 
-                    // Loyalty Card
-                    _buildLoyaltyCard(context, theme, isDark),
+                              // Loyalty Card
+                              _buildLoyaltyCard(context, theme, isDark, wallet.balance, wallet.tier.name, user?.name ?? 'Member'),
 
-                    const SizedBox(height: AppDimensions.xxl),
+                              const SizedBox(height: AppDimensions.xxl),
 
-                    // Progress to next tier
-                    _buildTierProgress(context, theme, isDark),
+                              // Progress to next tier
+                              _buildTierProgress(context, theme, isDark, wallet.balance, wallet.tier.name),
 
-                    const SizedBox(height: AppDimensions.xxxl),
+                              const SizedBox(height: AppDimensions.xxxl),
 
-                    // Recent Activity
-                    Text(
-                      'Recent Activity',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    ..._buildActivityList(context, theme, isDark),
+                              // Recent Activity
+                              Text(
+                                'Recent Activity',
+                                style: theme.textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: AppDimensions.md),
+                              ..._buildActivityList(context, theme, isDark, transactions),
 
-                    const SizedBox(height: AppDimensions.xxxl),
+                              const SizedBox(height: AppDimensions.xxxl),
 
-                    // Rewards section
-                    Text(
-                      'Redeem Rewards',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    _buildRewardsSection(context, theme, isDark),
+                              // Rewards section
+                              Text(
+                                'Redeem Rewards',
+                                style: theme.textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: AppDimensions.md),
+                              _buildRewardsSection(context, theme, isDark),
 
-                    const SizedBox(height: 120),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+                              const SizedBox(height: 120),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            );
+          }
+          return const SizedBox();
+        },
       ),
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildHeader(BuildContext context, ThemeData theme, bool isDark, String tierName) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -137,12 +166,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   vertical: AppDimensions.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.tierGold.withOpacity(0.2),
+                  color: AppColors.tierGold.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(
                     AppDimensions.radiusCircle,
                   ),
                   border: Border.all(
-                    color: AppColors.tierGold.withOpacity(0.4),
+                    color: AppColors.tierGold.withValues(alpha: 0.4),
                   ),
                 ),
                 child: Row(
@@ -154,8 +183,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                       color: AppColors.tierGold,
                     ),
                     const SizedBox(width: AppDimensions.xs),
-                    Text(
-                      'Gold',
+                    Text(tierName.toUpperCase(),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.tierGold,
                         fontWeight: FontWeight.w700,
@@ -171,11 +199,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
     );
   }
 
-  Widget _buildLoyaltyCard(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildLoyaltyCard(BuildContext context, ThemeData theme, bool isDark, int points, String tierName, String userName) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.xxl),
@@ -194,12 +218,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
         borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         boxShadow: [
           BoxShadow(
-            color: AppColors.tierGold.withOpacity(0.3),
+            color: AppColors.tierGold.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: AppColors.black.withOpacity(0.15),
+            color: AppColors.black.withValues(alpha: 0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -215,14 +239,14 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
               Text(
                 'FARCHIS',
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: AppColors.white.withOpacity(0.9),
+                  color: AppColors.white.withValues(alpha: 0.9),
                   letterSpacing: 3,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               Icon(
                 Icons.workspace_premium_rounded,
-                color: AppColors.white.withOpacity(0.9),
+                color: AppColors.white.withValues(alpha: 0.9),
                 size: AppDimensions.iconLg,
               ),
             ],
@@ -232,7 +256,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
 
           // Points
           Text(
-            '2,450',
+            points.toString(),
             style: theme.textTheme.displayLarge?.copyWith(
               color: AppColors.white,
               fontWeight: FontWeight.bold,
@@ -244,7 +268,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
           Text(
             'LOYALTY POINTS',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.white.withOpacity(0.8),
+              color: AppColors.white.withValues(alpha: 0.8),
               letterSpacing: 2,
             ),
           ),
@@ -259,15 +283,15 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'GOLD MEMBER',
+                    '${tierName.toUpperCase()} MEMBER',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.white.withOpacity(0.7),
+                      color: AppColors.white.withValues(alpha: 0.7),
                       letterSpacing: 1.5,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'John Doe',
+                    userName,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: AppColors.white,
                       fontWeight: FontWeight.w600,
@@ -281,7 +305,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   Text(
                     'MEMBER SINCE',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.white.withOpacity(0.7),
+                      color: AppColors.white.withValues(alpha: 0.7),
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -302,11 +326,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
     );
   }
 
-  Widget _buildTierProgress(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildTierProgress(BuildContext context, ThemeData theme, bool isDark, int points, String tierName) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.lg),
@@ -314,12 +334,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: (isDark ? AppColors.black : AppColors.navyDarkest)
-                .withOpacity(0.04),
+                .withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -336,7 +356,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                 style: theme.textTheme.titleMedium,
               ),
               Text(
-                '2,450 / 5,000 pts',
+                '$points / 5,000 pts',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.tierGold,
                   fontWeight: FontWeight.w600,
@@ -355,11 +375,11 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   AppDimensions.radiusCircle,
                 ),
                 child: LinearProgressIndicator(
-                  value: value,
+                  value: points / 5000,
                   minHeight: 10,
                   backgroundColor: isDark
-                      ? AppColors.navyLight.withOpacity(0.3)
-                      : AppColors.silver.withOpacity(0.3),
+                      ? AppColors.navyLight.withValues(alpha: 0.3)
+                      : AppColors.silver.withValues(alpha: 0.3),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     AppColors.tierGold,
                   ),
@@ -414,42 +434,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    List<LoyaltyTransactionModel> transactions,
   ) {
-    final activities = [
-      _ActivityItem(
-        icon: Icons.oil_barrel_rounded,
-        title: 'Oil Change Service',
-        date: 'Jun 18, 2026',
-        points: '+150',
-        color: AppColors.categoryMaintenance,
-      ),
-      _ActivityItem(
-        icon: Icons.people_rounded,
-        title: 'Referral Bonus',
-        date: 'Jun 10, 2026',
-        points: '+500',
-        color: AppColors.lightInfo,
-      ),
-      _ActivityItem(
-        icon: Icons.cake_rounded,
-        title: 'Birthday Reward',
-        date: 'May 25, 2026',
-        points: '+200',
-        color: AppColors.categoryCustom,
-      ),
-      _ActivityItem(
-        icon: Icons.auto_awesome_rounded,
-        title: 'Full Detailing',
-        date: 'May 12, 2026',
-        points: '+300',
-        color: AppColors.categoryDetailing,
-      ),
-    ];
-
-    return activities.asMap().entries.map((entry) {
+    return transactions.asMap().entries.map((entry) {
       final index = entry.key;
       final activity = entry.value;
-      final isLast = index == activities.length - 1;
+      final isLast = index == transactions.length - 1;
 
       return TweenAnimationBuilder<double>(
         tween: Tween(begin: 0.0, end: 1.0),
@@ -473,7 +463,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.15),
+              color: theme.colorScheme.outline.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
@@ -482,15 +472,15 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: activity.color.withOpacity(isDark ? 0.2 : 0.1),
+                  color: AppColors.categoryMaintenance.withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(
                     AppDimensions.radiusMd,
                   ),
                 ),
                 child: Icon(
-                  activity.icon,
+                  Icons.star_rounded,
                   size: AppDimensions.iconSm,
-                  color: activity.color,
+                  color: AppColors.categoryMaintenance,
                 ),
               ),
               const SizedBox(width: AppDimensions.md),
@@ -499,7 +489,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      activity.title,
+                      activity.description,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
@@ -507,14 +497,14 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      activity.date,
+                      activity.createdAt.toIso8601String().split('T').first,
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
               Text(
-                activity.points,
+                activity.type == LoyaltyTransactionType.earn ? '+${activity.points}' : '-${activity.points}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: isDark
                       ? AppColors.darkSuccess
@@ -561,7 +551,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: rewards.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
             const SizedBox(width: AppDimensions.md),
         itemBuilder: (context, index) {
           final reward = rewards[index];
@@ -587,13 +577,13 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   AppDimensions.radiusLg,
                 ),
                 border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color:
                         (isDark ? AppColors.black : AppColors.navyDarkest)
-                            .withOpacity(0.05),
+                            .withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -606,8 +596,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: reward.color.withOpacity(
-                        isDark ? 0.2 : 0.1,
+                      color: reward.color.withValues(
+                        alpha: isDark ? 0.2 : 0.1,
                       ),
                       shape: BoxShape.circle,
                     ),
@@ -634,7 +624,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                       vertical: AppDimensions.xs,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.tierGold.withOpacity(0.15),
+                      color: AppColors.tierGold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(
                         AppDimensions.radiusCircle,
                       ),

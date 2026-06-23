@@ -44,18 +44,55 @@ class CreateBookingRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [DriverConvenienceMapScreen]
-class DriverConvenienceMapRoute extends PageRouteInfo<void> {
-  const DriverConvenienceMapRoute({List<PageRouteInfo>? children})
-    : super(DriverConvenienceMapRoute.name, initialChildren: children);
+class DriverConvenienceMapRoute
+    extends PageRouteInfo<DriverConvenienceMapRouteArgs> {
+  DriverConvenienceMapRoute({
+    Key? key,
+    String? bookingId,
+    List<PageRouteInfo>? children,
+  }) : super(
+         DriverConvenienceMapRoute.name,
+         args: DriverConvenienceMapRouteArgs(key: key, bookingId: bookingId),
+         initialChildren: children,
+       );
 
   static const String name = 'DriverConvenienceMapRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const DriverConvenienceMapScreen();
+      final args = data.argsAs<DriverConvenienceMapRouteArgs>(
+        orElse: () => const DriverConvenienceMapRouteArgs(),
+      );
+      return DriverConvenienceMapScreen(
+        key: args.key,
+        bookingId: args.bookingId,
+      );
     },
   );
+}
+
+class DriverConvenienceMapRouteArgs {
+  const DriverConvenienceMapRouteArgs({this.key, this.bookingId});
+
+  final Key? key;
+
+  final String? bookingId;
+
+  @override
+  String toString() {
+    return 'DriverConvenienceMapRouteArgs{key: $key, bookingId: $bookingId}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DriverConvenienceMapRouteArgs) return false;
+    return key == other.key && bookingId == other.bookingId;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ bookingId.hashCode;
 }
 
 /// generated route for
@@ -92,18 +129,49 @@ class HomeRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [JobTrackerScreen]
-class JobTrackerRoute extends PageRouteInfo<void> {
-  const JobTrackerRoute({List<PageRouteInfo>? children})
-    : super(JobTrackerRoute.name, initialChildren: children);
+class JobTrackerRoute extends PageRouteInfo<JobTrackerRouteArgs> {
+  JobTrackerRoute({
+    Key? key,
+    required BookingModel booking,
+    List<PageRouteInfo>? children,
+  }) : super(
+         JobTrackerRoute.name,
+         args: JobTrackerRouteArgs(key: key, booking: booking),
+         initialChildren: children,
+       );
 
   static const String name = 'JobTrackerRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const JobTrackerScreen();
+      final args = data.argsAs<JobTrackerRouteArgs>();
+      return JobTrackerScreen(key: args.key, booking: args.booking);
     },
   );
+}
+
+class JobTrackerRouteArgs {
+  const JobTrackerRouteArgs({this.key, required this.booking});
+
+  final Key? key;
+
+  final BookingModel booking;
+
+  @override
+  String toString() {
+    return 'JobTrackerRouteArgs{key: $key, booking: $booking}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! JobTrackerRouteArgs) return false;
+    return key == other.key && booking == other.booking;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ booking.hashCode;
 }
 
 /// generated route for

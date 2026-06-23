@@ -114,16 +114,23 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: AppDimensions.xxl),
                       // FARCHIS text logo
-                      Text(
-                        'FARCHIS',
-                        style: GoogleFonts.outfit(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.white,
-                          letterSpacing: 12,
-                          height: 1.0,
-                        ),
-                        semanticsLabel: 'Farchis',
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 120,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Text(
+                            'FARCHIS',
+                            style: GoogleFonts.outfit(
+                              fontSize: 42,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.white,
+                              letterSpacing: 12,
+                              height: 1.0,
+                            ),
+                            semanticsLabel: 'Farchis',
+                          );
+                        },
                       ),
                       const SizedBox(height: AppDimensions.sm),
                     ],

@@ -151,8 +151,8 @@ class _GalleryScreenState extends State<GalleryScreen>
       padding: const EdgeInsets.all(AppDimensions.xs),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColors.navyDark.withOpacity(0.5)
-            : AppColors.silver.withOpacity(0.3),
+            ? AppColors.navyDark.withValues(alpha: 0.5)
+            : AppColors.silver.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
       ),
       child: TabBar(
@@ -162,7 +162,7 @@ class _GalleryScreenState extends State<GalleryScreen>
           borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withOpacity(0.08),
+              color: AppColors.black.withValues(alpha: 0.08),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -172,7 +172,7 @@ class _GalleryScreenState extends State<GalleryScreen>
         dividerColor: AppColors.transparent,
         labelColor: theme.colorScheme.onSurface,
         unselectedLabelColor:
-            theme.colorScheme.onSurface.withOpacity(0.5),
+            theme.colorScheme.onSurface.withValues(alpha: 0.5),
         labelStyle: theme.textTheme.labelMedium?.copyWith(
           fontWeight: FontWeight.w700,
         ),
@@ -202,7 +202,7 @@ class _GalleryScreenState extends State<GalleryScreen>
             Icon(
               Icons.photo_library_outlined,
               size: AppDimensions.iconXl,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppDimensions.md),
             Text(
@@ -275,7 +275,7 @@ class _GalleryScreenState extends State<GalleryScreen>
           boxShadow: [
             BoxShadow(
               color: (isDark ? AppColors.black : AppColors.navyDarkest)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -299,7 +299,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                   child: Icon(
                     Icons.directions_car_rounded,
                     size: AppDimensions.iconXl,
-                    color: AppColors.white.withOpacity(0.2),
+                    color: AppColors.white.withValues(alpha: 0.2),
                   ),
                 ),
               ),
@@ -322,7 +322,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                       end: Alignment.bottomCenter,
                       colors: [
                         AppColors.transparent,
-                        AppColors.black.withOpacity(0.7),
+                        AppColors.black.withValues(alpha: 0.7),
                       ],
                     ),
                   ),
@@ -343,7 +343,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                       Text(
                         item.category,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.white.withOpacity(0.7),
+                          color: AppColors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -362,8 +362,8 @@ class _GalleryScreenState extends State<GalleryScreen>
                   ),
                   decoration: BoxDecoration(
                     color: isBefore
-                        ? AppColors.categoryRepair.withOpacity(0.9)
-                        : AppColors.categoryMaintenance.withOpacity(0.9),
+                        ? AppColors.categoryRepair.withValues(alpha: 0.9)
+                        : AppColors.categoryMaintenance.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusSm,
                     ),

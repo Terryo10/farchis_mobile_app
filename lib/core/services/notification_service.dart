@@ -18,11 +18,12 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize(AppRouter router) async {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
 
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    final messaging = FirebaseMessaging.instance;
+      final messaging = FirebaseMessaging.instance;
 
     final settings = await messaging.requestPermission(
       alert: true,
@@ -101,6 +102,12 @@ class NotificationService {
           AppRouter.navigateFromNotification(n, router);
         } catch (_) {}
       });
+    } // End of if
+    } on FirebaseException catch (e) {
+      // Firebase is likely missing google-services.json or GoogleService-Info.plist
+      print('Firebase Initialization Error: ${e.message}');
+    } catch (e) {
+      print('Notification Service Error: $e');
     }
   }
 }

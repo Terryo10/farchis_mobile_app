@@ -8,7 +8,6 @@ import 'core/theme/app_theme.dart';
 import 'presentation/router/app_router.dart';
 import 'presentation/router/auth_guard.dart';
 import 'blocs/auth/auth_event.dart';
-import 'blocs/booking/booking_bloc.dart';
 import 'blocs/theme/theme_cubit.dart';
 
 class FarchisApp extends StatefulWidget {
@@ -53,7 +52,10 @@ class _FarchisAppState extends State<FarchisApp> {
           BlocProvider.value(value: Injection.authBloc),
           BlocProvider.value(value: Injection.bookingBloc),
           BlocProvider.value(value: Injection.bookingCreateBloc),
+          BlocProvider.value(value: Injection.loyaltyBloc),
           BlocProvider.value(value: Injection.mapsBloc),
+          BlocProvider.value(value: Injection.servicesBloc),
+          BlocProvider.value(value: Injection.promotionBloc),
         ],
         child: BlocBuilder<ThemeCubit, ThemeMode>(
           builder: (context, themeMode) {

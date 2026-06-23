@@ -23,6 +23,7 @@ import '../../blocs/loyalty/loyalty_bloc.dart';
 import '../../blocs/maps/maps_bloc.dart';
 import '../../blocs/services/services_bloc.dart';
 import '../../blocs/theme/theme_cubit.dart';
+import '../../blocs/promotion/promotion_bloc.dart';
 
 class Injection {
   Injection._();
@@ -54,6 +55,7 @@ class Injection {
   static late final MapsBloc _mapsBloc;
   static late final ServicesBloc _servicesBloc;
   static late final ThemeCubit _themeCubit;
+  static late final PromotionBloc _promotionBloc;
 
   static Future<void> init() async {
     secureStorage = const FlutterSecureStorage();
@@ -83,6 +85,7 @@ class Injection {
     _mapsBloc = MapsBloc(); 
     _servicesBloc = ServicesBloc(serviceRepository: serviceRepository);
     _themeCubit = ThemeCubit(sharedPreferences);
+    _promotionBloc = PromotionBloc(promotionRepository: promotionRepository);
   }
 
   static AuthBloc get authBloc => _authBloc;
@@ -92,4 +95,5 @@ class Injection {
   static MapsBloc get mapsBloc => _mapsBloc;
   static ServicesBloc get servicesBloc => _servicesBloc;
   static ThemeCubit get themeCubit => _themeCubit;
+  static PromotionBloc get promotionBloc => _promotionBloc;
 }

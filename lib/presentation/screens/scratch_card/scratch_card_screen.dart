@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
@@ -82,7 +81,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                               (isDark
                                       ? AppColors.darkSuccess
                                       : AppColors.lightSuccess)
-                                  .withOpacity(0.1),
+                                  .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(
                             AppDimensions.radiusCircle,
                           ),
@@ -91,7 +90,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                                 (isDark
                                         ? AppColors.darkSuccess
                                         : AppColors.lightSuccess)
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -240,12 +239,12 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
             borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
             boxShadow: [
               BoxShadow(
-                color: AppColors.tierGold.withOpacity(0.25),
+                color: AppColors.tierGold.withValues(alpha: 0.25),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: AppColors.black.withOpacity(0.15),
+                color: AppColors.black.withValues(alpha: 0.15),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -290,7 +289,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                           end: Alignment(-1 + 4 * _shimmerController.value, 0.3),
                           colors: [
                             AppColors.transparent,
-                            AppColors.white.withOpacity(0.15),
+                            AppColors.white.withValues(alpha: 0.15),
                             AppColors.transparent,
                           ],
                           stops: const [0.0, 0.5, 1.0],
@@ -317,19 +316,19 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                           Icon(
                             Icons.auto_awesome,
                             size: AppDimensions.iconSm,
-                            color: AppColors.white.withOpacity(0.7),
+                            color: AppColors.white.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: AppDimensions.sm),
                           Icon(
                             Icons.star_rounded,
                             size: AppDimensions.iconLg,
-                            color: AppColors.white.withOpacity(0.9),
+                            color: AppColors.white.withValues(alpha: 0.9),
                           ),
                           const SizedBox(width: AppDimensions.sm),
                           Icon(
                             Icons.auto_awesome,
                             size: AppDimensions.iconSm,
-                            color: AppColors.white.withOpacity(0.7),
+                            color: AppColors.white.withValues(alpha: 0.7),
                           ),
                         ],
                       ),
@@ -355,7 +354,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                           vertical: AppDimensions.sm,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.2),
+                          color: AppColors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(
                             AppDimensions.radiusCircle,
                           ),
@@ -366,14 +365,14 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                             Icon(
                               Icons.touch_app_rounded,
                               size: AppDimensions.iconSm,
-                              color: AppColors.white.withOpacity(0.9),
+                              color: AppColors.white.withValues(alpha: 0.9),
                             ),
                             const SizedBox(width: AppDimensions.sm),
                             Text(
                               'Tap to scratch',
                               style:
                                   theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.white.withOpacity(0.9),
+                                color: AppColors.white.withValues(alpha: 0.9),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -391,7 +390,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   child: Icon(
                     Icons.auto_awesome,
                     size: AppDimensions.iconXs,
-                    color: AppColors.white.withOpacity(0.5),
+                    color: AppColors.white.withValues(alpha: 0.5),
                   ),
                 ),
                 Positioned(
@@ -400,7 +399,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   child: Icon(
                     Icons.auto_awesome,
                     size: AppDimensions.iconXs,
-                    color: AppColors.white.withOpacity(0.5),
+                    color: AppColors.white.withValues(alpha: 0.5),
                   ),
                 ),
                 Positioned(
@@ -409,7 +408,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   child: Icon(
                     Icons.auto_awesome,
                     size: AppDimensions.iconXs,
-                    color: AppColors.white.withOpacity(0.4),
+                    color: AppColors.white.withValues(alpha: 0.4),
                   ),
                 ),
                 Positioned(
@@ -418,7 +417,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   child: Icon(
                     Icons.auto_awesome,
                     size: AppDimensions.iconXs,
-                    color: AppColors.white.withOpacity(0.4),
+                    color: AppColors.white.withValues(alpha: 0.4),
                   ),
                 ),
               ],
@@ -478,7 +477,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                     ),
                     border: Border.all(
                       color:
-                          theme.colorScheme.outline.withOpacity(0.15),
+                          theme.colorScheme.outline.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Column(
@@ -487,7 +486,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.tierGold.withOpacity(0.15),
+                          color: AppColors.tierGold.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -585,7 +584,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                 AppDimensions.radiusMd,
               ),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.15),
+                color: theme.colorScheme.outline.withValues(alpha: 0.15),
               ),
             ),
             child: Row(
@@ -594,7 +593,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: prize.color.withOpacity(isDark ? 0.2 : 0.1),
+                    color: prize.color.withValues(alpha: isDark ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusMd,
                     ),
@@ -632,11 +631,11 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   ),
                   decoration: BoxDecoration(
                     color: prize.isUsed
-                        ? theme.colorScheme.onSurface.withOpacity(0.08)
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
                         : (isDark
                                 ? AppColors.darkSuccess
                                 : AppColors.lightSuccess)
-                            .withOpacity(0.12),
+                            .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusSm,
                     ),
@@ -645,7 +644,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                     prize.isUsed ? 'Used' : 'Active',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: prize.isUsed
-                          ? theme.colorScheme.onSurface.withOpacity(0.5)
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
                           : (isDark
                               ? AppColors.darkSuccess
                               : AppColors.lightSuccess),
@@ -666,7 +665,7 @@ class _ScratchPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.06)
+      ..color = Colors.white.withValues(alpha: 0.06)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -681,7 +680,7 @@ class _ScratchPatternPainter extends CustomPainter {
 
     // Draw subtle circles
     final circlePaint = Paint()
-      ..color = Colors.white.withOpacity(0.04)
+      ..color = Colors.white.withValues(alpha: 0.04)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
 
