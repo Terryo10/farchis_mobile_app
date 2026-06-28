@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +10,7 @@ import '../../../blocs/auth/auth_bloc.dart';
 import '../../../blocs/auth/auth_state.dart';
 import '../../../blocs/loyalty/loyalty_event.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/loyalty_wallet_model.dart';
 import '../../../data/models/loyalty_transaction_model.dart';
 
 
@@ -54,20 +56,35 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
     return Scaffold(
       body: BlocBuilder<LoyaltyBloc, LoyaltyState>(
         builder: (context, loyaltyState) {
-          if (loyaltyState is LoyaltyLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final isLoading = loyaltyState is LoyaltyLoading || loyaltyState is LoyaltyInitial;
           if (loyaltyState is LoyaltyLoadFailed) {
             return Center(child: Text('Failed to load loyalty data'));
           }
-          if (loyaltyState is LoyaltyLoaded) {
-            final wallet = loyaltyState.wallet;
-            final transactions = loyaltyState.transactions;
-            return BlocBuilder<AuthBloc, AuthState>(
+
+          final wallet = loyaltyState is LoyaltyLoaded
+              ? loyaltyState.wallet
+              : LoyaltyWalletModel.placeholder();
+          final transactions = loyaltyState is LoyaltyLoaded
+              ? loyaltyState.transactions
+              : LoyaltyTransactionModel.placeholderList(3);
+
+          return Skeletonizer(
+            enabled: isLoading,
+            effect: ShimmerEffect(
+              baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+              highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+            ),
+            child: BlocBuilder<AuthBloc, AuthState>(
               builder: (context, authState) {
                 UserModel? user;
                 if (authState is Authenticated) {
                   user = authState.user;
+                } else if (isLoading) {
+                  user = const UserModel(
+                    id: 0,
+                    name: 'John Doe',
+                    email: 'johndoe@example.com',
+                  );
                 }
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -76,7 +93,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                     children: [
                       _buildHeader(context, theme, isDark, wallet.tier.name),
                       FadeTransition(
-                        opacity: _fadeAnimation,
+                        opacity: isLoading ? const AlwaysStoppedAnimation(1.0) : _fadeAnimation,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppDimensions.lg,
@@ -123,9 +140,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
                   ),
                 );
               }
-            );
-          }
-          return const SizedBox();
+            ),
+          );
         },
       ),
     );
@@ -647,21 +663,6 @@ class _LoyaltyScreenState extends State<LoyaltyScreen>
   }
 }
 
-class _ActivityItem {
-  final IconData icon;
-  final String title;
-  final String date;
-  final String points;
-  final Color color;
-
-  const _ActivityItem({
-    required this.icon,
-    required this.title,
-    required this.date,
-    required this.points,
-    required this.color,
-  });
-}
 
 class _RewardItem {
   final IconData icon;

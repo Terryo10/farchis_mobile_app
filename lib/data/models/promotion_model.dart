@@ -5,13 +5,15 @@ part 'promotion_model.g.dart';
 @JsonEnum(fieldRename: FieldRename.snake)
 enum PromotionType { push_blast, in_app }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class PromotionModel {
   final int id;
   final String title;
   final String body;
+  @JsonKey(name: 'image')
   final String? imageUrl;
   final PromotionType type;
+  @JsonKey(defaultValue: true)
   final bool isActive;
 
   const PromotionModel({
@@ -20,7 +22,7 @@ class PromotionModel {
     required this.body,
     this.imageUrl,
     required this.type,
-    required this.isActive,
+    this.isActive = true,
   });
 
   factory PromotionModel.fromJson(Map<String, dynamic> json) => _$PromotionModelFromJson(json);
@@ -44,4 +46,15 @@ class PromotionModel {
       isActive: isActive ?? this.isActive,
     );
   }
+
+  factory PromotionModel.placeholder() => const PromotionModel(
+        id: 0,
+        title: 'Loading promotion title',
+        body: 'Loading promotion body and description text here...',
+        type: PromotionType.in_app,
+        isActive: true,
+      );
+
+  static List<PromotionModel> placeholderList(int count) =>
+      List.generate(count, (index) => PromotionModel.placeholder().copyWith(id: index));
 }

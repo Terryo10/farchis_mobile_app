@@ -1,7 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import '../../../blocs/gallery/gallery_bloc.dart';
+import '../../../blocs/gallery/gallery_event.dart';
+import '../../../blocs/gallery/gallery_state.dart';
+import '../../../data/models/gallery_item_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import '../../../core/widgets/farchis_button.dart';
 
 @RoutePage()
 class GalleryScreen extends StatefulWidget {
@@ -18,69 +25,6 @@ class _GalleryScreenState extends State<GalleryScreen>
 
   static const _tabs = ['All', 'Detailing', 'Repairs', 'Custom'];
 
-  final List<_GalleryItem> _allItems = const [
-    _GalleryItem(
-      title: 'Full Body Detail',
-      category: 'Detailing',
-      badge: 'After',
-      colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-    ),
-    _GalleryItem(
-      title: 'Engine Bay Clean',
-      category: 'Detailing',
-      badge: 'Before',
-      colors: [Color(0xFF4E342E), Color(0xFF795548)],
-    ),
-    _GalleryItem(
-      title: 'Bumper Repair',
-      category: 'Repairs',
-      badge: 'After',
-      colors: [Color(0xFFC62828), Color(0xFFEF5350)],
-    ),
-    _GalleryItem(
-      title: 'Paint Correction',
-      category: 'Detailing',
-      badge: 'After',
-      colors: [Color(0xFF0D47A1), Color(0xFF1E88E5)],
-    ),
-    _GalleryItem(
-      title: 'Custom Wrap',
-      category: 'Custom',
-      badge: 'After',
-      colors: [Color(0xFF212121), Color(0xFF616161)],
-    ),
-    _GalleryItem(
-      title: 'Dent Removal',
-      category: 'Repairs',
-      badge: 'Before',
-      colors: [Color(0xFF827717), Color(0xFFAFB42B)],
-    ),
-    _GalleryItem(
-      title: 'Interior Restore',
-      category: 'Detailing',
-      badge: 'After',
-      colors: [Color(0xFF4A148C), Color(0xFF9C27B0)],
-    ),
-    _GalleryItem(
-      title: 'Custom Exhaust',
-      category: 'Custom',
-      badge: 'After',
-      colors: [Color(0xFFBF360C), Color(0xFFFF5722)],
-    ),
-    _GalleryItem(
-      title: 'Scratch Repair',
-      category: 'Repairs',
-      badge: 'Before',
-      colors: [Color(0xFF33691E), Color(0xFF689F38)],
-    ),
-    _GalleryItem(
-      title: 'Ceramic Coating',
-      category: 'Detailing',
-      badge: 'After',
-      colors: [Color(0xFF006064), Color(0xFF00ACC1)],
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -90,11 +34,15 @@ class _GalleryScreenState extends State<GalleryScreen>
       duration: const Duration(milliseconds: 600),
     );
     _animController.forward();
+
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
       }
     });
+
+    // Trigger loading of gallery items
+    context.read<GalleryBloc>().add(const GetGalleryEvent());
   }
 
   @override
@@ -104,12 +52,13 @@ class _GalleryScreenState extends State<GalleryScreen>
     super.dispose();
   }
 
-  List<_GalleryItem> get _filteredItems {
+  List<GalleryItemModel> _filteredItems(List<GalleryItemModel> allItems) {
     final selectedTab = _tabs[_tabController.index];
-    if (selectedTab == 'All') return _allItems;
-    return _allItems
-        .where((item) => item.category == selectedTab)
-        .toList();
+    if (selectedTab == 'All') return allItems;
+    return allItems.where((item) {
+      final caption = item.caption?.toLowerCase() ?? '';
+      return caption.contains(selectedTab.toLowerCase());
+    }).toList();
   }
 
   @override
@@ -138,7 +87,61 @@ class _GalleryScreenState extends State<GalleryScreen>
             ),
           ];
         },
-        body: _buildGalleryGrid(context, theme, isDark),
+        body: BlocBuilder<GalleryBloc, GalleryState>(
+          builder: (context, state) {
+            final isLoading = state is GalleryLoading || state is GalleryInitial;
+            if (state is GalleryLoadFailed) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDimensions.lg),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: AppDimensions.md),
+                      Text(
+                        'Failed to load gallery',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppDimensions.sm),
+                      Text(
+                        state.failure.message,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                      FarchisButton(
+                        label: 'Retry',
+                        onPressed: () {
+                          context.read<GalleryBloc>().add(const GetGalleryEvent());
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final items = state is GalleryLoaded
+                ? state.items
+                : GalleryItemModel.placeholderList(6);
+
+            return Skeletonizer(
+              enabled: isLoading,
+              effect: ShimmerEffect(
+                baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+                highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+              ),
+              child: _buildGalleryGrid(context, theme, isDark, items, isLoading: isLoading),
+            );
+          },
+        ),
       ),
     );
   }
@@ -191,8 +194,10 @@ class _GalleryScreenState extends State<GalleryScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
-  ) {
-    final items = _filteredItems;
+    List<GalleryItemModel> allItems, {
+    bool isLoading = false,
+  }) {
+    final items = isLoading ? allItems : _filteredItems(allItems);
 
     if (items.isEmpty) {
       return Center(
@@ -206,7 +211,7 @@ class _GalleryScreenState extends State<GalleryScreen>
             ),
             const SizedBox(height: AppDimensions.md),
             Text(
-              'No gallery items yet',
+              'No gallery items in this category',
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -232,7 +237,7 @@ class _GalleryScreenState extends State<GalleryScreen>
       itemBuilder: (context, index) {
         final item = items[index];
         return TweenAnimationBuilder<double>(
-          key: ValueKey('${item.title}_${_tabController.index}'),
+          key: ValueKey('${item.id}_${_tabController.index}'),
           tween: Tween(begin: 0.0, end: 1.0),
           duration: Duration(milliseconds: 300 + (index * 60)),
           curve: Curves.easeOutCubic,
@@ -255,18 +260,13 @@ class _GalleryScreenState extends State<GalleryScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
-    _GalleryItem item,
+    GalleryItemModel item,
   ) {
-    final isBefore = item.badge == 'Before';
-
     return GestureDetector(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Viewing: ${item.title}'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 1),
-          ),
+        showDialog(
+          context: context,
+          builder: (context) => _GalleryItemDetailsDialog(item: item),
         );
       },
       child: Container(
@@ -286,22 +286,28 @@ class _GalleryScreenState extends State<GalleryScreen>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Colored placeholder simulating an image
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: item.colors,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.directions_car_rounded,
-                    size: AppDimensions.iconXl,
-                    color: AppColors.white.withValues(alpha: 0.2),
-                  ),
-                ),
+              // After image as background, since it's the final result
+              Image.network(
+                item.afterImageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.directions_car_rounded,
+                        size: AppDimensions.iconXl,
+                        color: AppColors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                  );
+                },
               ),
 
               // Bottom gradient overlay
@@ -331,7 +337,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        item.title,
+                        item.caption ?? 'Awesome Service',
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: AppColors.white,
                           fontWeight: FontWeight.w700,
@@ -341,7 +347,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                       ),
                       const SizedBox(height: AppDimensions.xs),
                       Text(
-                        item.category,
+                        'Tap to compare',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.white.withValues(alpha: 0.7),
                         ),
@@ -351,7 +357,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                 ),
               ),
 
-              // Before/After badge
+              // Visual badge
               Positioned(
                 top: AppDimensions.sm,
                 right: AppDimensions.sm,
@@ -361,15 +367,13 @@ class _GalleryScreenState extends State<GalleryScreen>
                     vertical: AppDimensions.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: isBefore
-                        ? AppColors.categoryRepair.withValues(alpha: 0.9)
-                        : AppColors.categoryMaintenance.withValues(alpha: 0.9),
+                    color: AppColors.categoryMaintenance.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusSm,
                     ),
                   ),
                   child: Text(
-                    item.badge,
+                    'Result',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.white,
                       fontWeight: FontWeight.w700,
@@ -386,16 +390,166 @@ class _GalleryScreenState extends State<GalleryScreen>
   }
 }
 
-class _GalleryItem {
-  final String title;
-  final String category;
-  final String badge;
-  final List<Color> colors;
+class _GalleryItemDetailsDialog extends StatefulWidget {
+  final GalleryItemModel item;
 
-  const _GalleryItem({
-    required this.title,
-    required this.category,
-    required this.badge,
-    required this.colors,
-  });
+  const _GalleryItemDetailsDialog({required this.item});
+
+  @override
+  State<_GalleryItemDetailsDialog> createState() =>
+      __GalleryItemDetailsDialogState();
+}
+
+class __GalleryItemDetailsDialogState extends State<_GalleryItemDetailsDialog> {
+  bool _showAfter = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 300),
+                    firstCurve: Curves.easeInOutCubic,
+                    secondCurve: Curves.easeInOutCubic,
+                    crossFadeState: _showAfter
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: Image.network(
+                      widget.item.afterImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const _PlaceholderImage(),
+                    ),
+                    secondChild: Image.network(
+                      widget.item.beforeImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const _PlaceholderImage(),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: AppDimensions.sm,
+                  right: AppDimensions.sm,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.4),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                Positioned(
+                  bottom: AppDimensions.md,
+                  left: AppDimensions.md,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.md,
+                      vertical: AppDimensions.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                    ),
+                    child: Text(
+                      _showAfter ? 'AFTER' : 'BEFORE',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppDimensions.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.item.caption ?? 'Service Transformation',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: !_showAfter
+                                ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                                : null,
+                            side: BorderSide(
+                              color: !_showAfter
+                                  ? theme.colorScheme.primary
+                                  : theme.dividerColor,
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showAfter = false;
+                            });
+                          },
+                          child: const Text('Before'),
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.md),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _showAfter
+                                ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                                : null,
+                            side: BorderSide(
+                              color: _showAfter
+                                  ? theme.colorScheme.primary
+                                  : theme.dividerColor,
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showAfter = true;
+                            });
+                          },
+                          child: const Text('After'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceholderImage extends StatelessWidget {
+  const _PlaceholderImage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+      ),
+    );
+  }
 }

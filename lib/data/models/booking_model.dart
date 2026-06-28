@@ -10,7 +10,7 @@ enum BookingStatus { pending, confirmed, in_queue, being_assessed, in_progress, 
 @JsonEnum(fieldRename: FieldRename.snake)
 enum PaymentStatus { pending, paid, failed }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class BookingModel {
   final int id;
   final int userId;
@@ -85,4 +85,21 @@ class BookingModel {
       scratchCard: scratchCard ?? this.scratchCard,
     );
   }
+
+  factory BookingModel.placeholder() => BookingModel(
+        id: 0,
+        userId: 0,
+        service: ServiceModel.placeholder(),
+        bookingDate: DateTime.now(),
+        bookingTime: '10:00 AM',
+        status: BookingStatus.confirmed,
+        notes: 'Loading notes...',
+        damagePhotos: const [],
+        totalAmount: 120.0,
+        paymentStatus: PaymentStatus.pending,
+        createdAt: DateTime.now(),
+      );
+
+  static List<BookingModel> placeholderList(int count) =>
+      List.generate(count, (index) => BookingModel.placeholder().copyWith(id: index));
 }

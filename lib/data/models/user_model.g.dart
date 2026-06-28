@@ -11,17 +11,17 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   name: json['name'] as String,
   email: json['email'] as String,
   phone: json['phone'] as String?,
-  avatarUrl: json['avatarUrl'] as String?,
-  referralCode: json['referralCode'] as String?,
-  loyaltyTier: $enumDecodeNullable(_$LoyaltyTierEnumMap, json['loyaltyTier']),
-  loyaltyPoints: (json['loyaltyPoints'] as num?)?.toInt(),
-  vehicleMake: json['vehicleMake'] as String?,
-  vehicleModel: json['vehicleModel'] as String?,
-  vehicleYear: (json['vehicleYear'] as num?)?.toInt(),
-  vehiclePlate: json['vehiclePlate'] as String?,
-  lastServiceDate: json['lastServiceDate'] == null
+  avatarUrl: json['avatar'] as String?,
+  referralCode: json['referral_code'] as String?,
+  loyaltyTier: $enumDecodeNullable(_$LoyaltyTierEnumMap, json['loyalty_tier']),
+  loyaltyPoints: (json['loyalty_points'] as num?)?.toInt(),
+  vehicleMake: json['vehicle_make'] as String?,
+  vehicleModel: json['vehicle_model'] as String?,
+  vehicleYear: (json['vehicle_year'] as num?)?.toInt(),
+  vehiclePlate: json['vehicle_plate'] as String?,
+  lastServiceDate: json['last_service_date'] == null
       ? null
-      : DateTime.parse(json['lastServiceDate'] as String),
+      : DateTime.parse(json['last_service_date'] as String),
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -29,15 +29,15 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'name': instance.name,
   'email': instance.email,
   'phone': instance.phone,
-  'avatarUrl': instance.avatarUrl,
-  'referralCode': instance.referralCode,
-  'loyaltyTier': _$LoyaltyTierEnumMap[instance.loyaltyTier],
-  'loyaltyPoints': instance.loyaltyPoints,
-  'vehicleMake': instance.vehicleMake,
-  'vehicleModel': instance.vehicleModel,
-  'vehicleYear': instance.vehicleYear,
-  'vehiclePlate': instance.vehiclePlate,
-  'lastServiceDate': instance.lastServiceDate?.toIso8601String(),
+  'avatar': instance.avatarUrl,
+  'referral_code': instance.referralCode,
+  'loyalty_tier': _$LoyaltyTierEnumMap[instance.loyaltyTier],
+  'loyalty_points': instance.loyaltyPoints,
+  'vehicle_make': instance.vehicleMake,
+  'vehicle_model': instance.vehicleModel,
+  'vehicle_year': instance.vehicleYear,
+  'vehicle_plate': instance.vehiclePlate,
+  'last_service_date': instance.lastServiceDate?.toIso8601String(),
 };
 
 const _$LoyaltyTierEnumMap = {

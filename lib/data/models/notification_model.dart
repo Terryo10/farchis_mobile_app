@@ -2,9 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'notification_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class NotificationModel {
-  final int id;
+  final String id;
   final String title;
   final String body;
   final String type;
@@ -27,7 +27,7 @@ class NotificationModel {
   Map<String, dynamic> toJson() => _$NotificationModelToJson(this);
 
   NotificationModel copyWith({
-    int? id,
+    String? id,
     String? title,
     String? body,
     String? type,
@@ -45,4 +45,17 @@ class NotificationModel {
       data: data ?? this.data,
     );
   }
+
+  factory NotificationModel.placeholder() => NotificationModel(
+        id: '0',
+        title: 'Loading notification title',
+        body: 'Loading notification details and information text here...',
+        type: 'booking',
+        isRead: false,
+        createdAt: DateTime.now(),
+        data: const {},
+      );
+
+  static List<NotificationModel> placeholderList(int count) =>
+      List.generate(count, (index) => NotificationModel.placeholder().copyWith(id: index.toString()));
 }

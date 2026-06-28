@@ -1,7 +1,13 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import '../../../blocs/scratch_card/scratch_card_bloc.dart';
+import '../../../blocs/scratch_card/scratch_card_event.dart';
+import '../../../blocs/scratch_card/scratch_card_state.dart';
+import '../../../data/models/scratch_card_model.dart';
+import '../../../core/widgets/farchis_button.dart';
 
 @RoutePage()
 class ScratchCardScreen extends StatefulWidget {
@@ -33,6 +39,9 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
       curve: Curves.easeOutCubic,
     );
     _animController.forward();
+
+    // Fetch scratch cards
+    context.read<ScratchCardBloc>().add(const GetScratchCardsEvent());
   }
 
   @override
@@ -42,104 +51,230 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
     super.dispose();
   }
 
+  String _formatDate(DateTime? dt) {
+    if (dt == null) return '';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  IconData _getPrizeIcon(PrizeType type) {
+    switch (type) {
+      case PrizeType.discount:
+        return Icons.percent_rounded;
+      case PrizeType.free_valet:
+        return Icons.local_car_wash_rounded;
+      case PrizeType.bonus_points:
+        return Icons.stars_rounded;
+    }
+  }
+
+  Color _getPrizeColor(PrizeType type, bool isDark) {
+    switch (type) {
+      case PrizeType.discount:
+        return isDark ? AppColors.darkInfo : AppColors.lightInfo;
+      case PrizeType.free_valet:
+        return AppColors.categoryDetailing;
+      case PrizeType.bonus_points:
+        return AppColors.tierGold;
+    }
+  }
+
+  String _getPrizeTitle(PrizeType type, double value) {
+    switch (type) {
+      case PrizeType.discount:
+        return '${value.toInt()}% Off Next Service';
+      case PrizeType.free_valet:
+        return 'Free Valet Service';
+      case PrizeType.bonus_points:
+        return '${value.toInt()} Bonus Points';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            _buildHeader(context, theme, isDark),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.lg,
-                ),
+    return BlocListener<ScratchCardBloc, ScratchCardState>(
+      listener: (context, state) {
+        if (state is ScratchCardScratchSuccess) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogCtx) => _ScratchRewardDialog(
+              card: state.card,
+              onClaim: () {
+                Navigator.pop(dialogCtx);
+                context.read<ScratchCardBloc>().add(const GetScratchCardsEvent());
+              },
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        body: BlocBuilder<ScratchCardBloc, ScratchCardState>(
+          builder: (context, state) {
+            List<ScratchCardModel> available = [];
+            List<ScratchCardModel> history = [];
+
+            if (state is ScratchCardsLoaded) {
+              available = state.cards.where((c) => !c.isScratched).toList();
+              history = state.cards.where((c) => c.isScratched).toList();
+            } else if (state is ScratchCardScratchSuccess) {
+              // Keep loading or transitioning state until dialog claimed
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<ScratchCardBloc>().add(const GetScratchCardsEvent());
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: AppDimensions.xxl),
-
-                    // Scratch Card
-                    _buildScratchCard(context, theme, isDark),
-
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Availability text
-                    Center(
-                      child: Container(
+                    _buildHeader(context, theme, isDark),
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppDimensions.lg,
-                          vertical: AppDimensions.sm,
                         ),
-                        decoration: BoxDecoration(
-                          color:
-                              (isDark
-                                      ? AppColors.darkSuccess
-                                      : AppColors.lightSuccess)
-                                  .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(
-                            AppDimensions.radiusCircle,
-                          ),
-                          border: Border.all(
-                            color:
-                                (isDark
-                                        ? AppColors.darkSuccess
-                                        : AppColors.lightSuccess)
-                                    .withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.confirmation_number_rounded,
-                              size: AppDimensions.iconSm,
-                              color: isDark
-                                  ? AppColors.darkSuccess
-                                  : AppColors.lightSuccess,
-                            ),
-                            const SizedBox(width: AppDimensions.sm),
-                            Text(
-                              'You have 1 scratch card available',
-                              style:
-                                  theme.textTheme.labelMedium?.copyWith(
-                                color: isDark
-                                    ? AppColors.darkSuccess
-                                    : AppColors.lightSuccess,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(height: AppDimensions.xxl),
+
+                            if (state is ScratchCardsLoading)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(AppDimensions.xl),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else if (state is ScratchCardError)
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppDimensions.xl),
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
+                                      const SizedBox(height: AppDimensions.md),
+                                      Text(state.failure.message),
+                                      const SizedBox(height: AppDimensions.lg),
+                                      FarchisButton(
+                                        label: 'Retry',
+                                        onPressed: () {
+                                          context.read<ScratchCardBloc>().add(const GetScratchCardsEvent());
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else ...[
+                              // Scratch Card Display
+                              if (available.isNotEmpty)
+                                _buildScratchCard(context, theme, isDark, available.first)
+                              else
+                                _buildNoCardPlaceholder(context, theme, isDark),
+
+                              const SizedBox(height: AppDimensions.lg),
+
+                              // Availability text
+                              Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppDimensions.lg,
+                                    vertical: AppDimensions.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: (available.isNotEmpty
+                                            ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
+                                            : (isDark ? AppColors.darkInfo : AppColors.lightInfo))
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(
+                                      AppDimensions.radiusCircle,
+                                    ),
+                                    border: Border.all(
+                                      color: (available.isNotEmpty
+                                              ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
+                                              : (isDark ? AppColors.darkInfo : AppColors.lightInfo))
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.confirmation_number_rounded,
+                                        size: AppDimensions.iconSm,
+                                        color: available.isNotEmpty
+                                            ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
+                                            : (isDark ? AppColors.darkInfo : AppColors.lightInfo),
+                                      ),
+                                      const SizedBox(width: AppDimensions.sm),
+                                      Text(
+                                        available.isNotEmpty
+                                            ? 'You have ${available.length} scratch card${available.length > 1 ? 's' : ''} available'
+                                            : 'No scratch cards available',
+                                        style: theme.textTheme.labelMedium?.copyWith(
+                                          color: available.isNotEmpty
+                                              ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
+                                              : (isDark ? AppColors.darkInfo : AppColors.lightInfo),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
+                            ],
+
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // How it works
+                            _buildHowItWorks(context, theme, isDark),
+
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // Prize History
+                            Text(
+                              'Prize History',
+                              style: theme.textTheme.headlineSmall,
                             ),
+                            const SizedBox(height: AppDimensions.md),
+                            if (history.isNotEmpty)
+                              _buildPrizeHistory(context, theme, isDark, history)
+                            else
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(AppDimensions.xl),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline.withValues(alpha: 0.15),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'No prizes won yet',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                            const SizedBox(height: 120),
                           ],
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: AppDimensions.xxxl),
-
-                    // How it works
-                    _buildHowItWorks(context, theme, isDark),
-
-                    const SizedBox(height: AppDimensions.xxxl),
-
-                    // Prize History
-                    Text(
-                      'Prize History',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    _buildPrizeHistory(context, theme, isDark),
-
-                    const SizedBox(height: 120),
                   ],
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -214,6 +349,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    ScratchCardModel card,
   ) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.9, end: 1.0),
@@ -224,13 +360,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
       },
       child: GestureDetector(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎉 Scratch card coming soon!'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
+          context.read<ScratchCardBloc>().add(ScratchCardTriggeredEvent(card.id.toString()));
         },
         child: Container(
           width: double.infinity,
@@ -255,7 +385,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Base gradient
+                // Base gold gradient
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -309,7 +439,6 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Stars decoration
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -370,8 +499,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                             const SizedBox(width: AppDimensions.sm),
                             Text(
                               'Tap to scratch',
-                              style:
-                                  theme.textTheme.labelMedium?.copyWith(
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 color: AppColors.white.withValues(alpha: 0.9),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -402,28 +530,50 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                     color: AppColors.white.withValues(alpha: 0.5),
                   ),
                 ),
-                Positioned(
-                  bottom: AppDimensions.lg,
-                  left: AppDimensions.lg,
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: AppDimensions.iconXs,
-                    color: AppColors.white.withValues(alpha: 0.4),
-                  ),
-                ),
-                Positioned(
-                  bottom: AppDimensions.lg,
-                  right: AppDimensions.lg,
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: AppDimensions.iconXs,
-                    color: AppColors.white.withValues(alpha: 0.4),
-                  ),
-                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNoCardPlaceholder(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Container(
+      width: double.infinity,
+      height: 240,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.navyDark : AppColors.silver.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.lock_reset_rounded,
+            size: 48,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: AppDimensions.md),
+          Text(
+            'No cards available',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppDimensions.xs),
+          Text(
+            'Book a service to receive new cards!',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -529,36 +679,17 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    List<ScratchCardModel> prizes,
   ) {
-    final prizes = [
-      _PrizeItem(
-        title: '10% Off Next Service',
-        date: 'Jun 15, 2026',
-        icon: Icons.percent_rounded,
-        color: isDark ? AppColors.darkInfo : AppColors.lightInfo,
-        isUsed: false,
-      ),
-      _PrizeItem(
-        title: 'Free Car Wash',
-        date: 'May 28, 2026',
-        icon: Icons.local_car_wash_rounded,
-        color: AppColors.categoryDetailing,
-        isUsed: true,
-      ),
-      _PrizeItem(
-        title: '500 Bonus Points',
-        date: 'May 10, 2026',
-        icon: Icons.stars_rounded,
-        color: AppColors.tierGold,
-        isUsed: true,
-      ),
-    ];
-
     return Column(
       children: prizes.asMap().entries.map((entry) {
         final index = entry.key;
         final prize = entry.value;
         final isLast = index == prizes.length - 1;
+
+        final title = _getPrizeTitle(prize.prizeType, prize.prizeValue);
+        final icon = _getPrizeIcon(prize.prizeType);
+        final color = _getPrizeColor(prize.prizeType, isDark);
 
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0.0, end: 1.0),
@@ -593,15 +724,15 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: prize.color.withValues(alpha: isDark ? 0.2 : 0.1),
+                    color: color.withValues(alpha: isDark ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusMd,
                     ),
                   ),
                   child: Icon(
-                    prize.icon,
+                    icon,
                     size: AppDimensions.iconSm,
-                    color: prize.color,
+                    color: color,
                   ),
                 ),
                 const SizedBox(width: AppDimensions.md),
@@ -610,7 +741,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        prize.title,
+                        title,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
@@ -618,7 +749,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Won on ${prize.date}',
+                        'Won on ${_formatDate(prize.scratchedAt)}',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -630,24 +761,15 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
                     vertical: AppDimensions.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: prize.isUsed
-                        ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
-                        : (isDark
-                                ? AppColors.darkSuccess
-                                : AppColors.lightSuccess)
-                            .withValues(alpha: 0.12),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusSm,
                     ),
                   ),
                   child: Text(
-                    prize.isUsed ? 'Used' : 'Active',
+                    'Active',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: prize.isUsed
-                          ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
-                          : (isDark
-                              ? AppColors.darkSuccess
-                              : AppColors.lightSuccess),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -661,6 +783,148 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
   }
 }
 
+class _ScratchRewardDialog extends StatelessWidget {
+  final ScratchCardModel card;
+  final VoidCallback onClaim;
+
+  const _ScratchRewardDialog({
+    required this.card,
+    required this.onClaim,
+  });
+
+  IconData _getPrizeIcon(PrizeType type) {
+    switch (type) {
+      case PrizeType.discount:
+        return Icons.percent_rounded;
+      case PrizeType.free_valet:
+        return Icons.local_car_wash_rounded;
+      case PrizeType.bonus_points:
+        return Icons.stars_rounded;
+    }
+  }
+
+  String _getPrizeTitle(PrizeType type, double value) {
+    switch (type) {
+      case PrizeType.discount:
+        return '${value.toInt()}% Off';
+      case PrizeType.free_valet:
+        return 'Free Valet';
+      case PrizeType.bonus_points:
+        return '+${value.toInt()} Points';
+    }
+  }
+
+  String _getPrizeSub(PrizeType type) {
+    switch (type) {
+      case PrizeType.discount:
+        return 'Discount code added to your account!';
+      case PrizeType.free_valet:
+        return 'Redeemable on your next workshop visit!';
+      case PrizeType.bonus_points:
+        return 'Loyalty points added to your wallet!';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      ),
+      elevation: 24,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1E2640),
+              Color(0xFF111728),
+            ],
+          ),
+          border: Border.all(color: AppColors.tierGold.withValues(alpha: 0.3)),
+        ),
+        padding: const EdgeInsets.all(AppDimensions.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.auto_awesome,
+              size: 48,
+              color: AppColors.tierGold,
+            ),
+            const SizedBox(height: AppDimensions.md),
+            Text(
+              'CONGRATULATIONS!',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: AppColors.tierGold,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.sm),
+            Text(
+              'You Scratched and Won',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.xl),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.xl,
+                vertical: AppDimensions.lg,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    _getPrizeIcon(card.prizeType),
+                    size: 48,
+                    color: AppColors.tierGold,
+                  ),
+                  const SizedBox(height: AppDimensions.sm),
+                  Text(
+                    _getPrizeTitle(card.prizeType, card.prizeValue),
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.xs),
+                  Text(
+                    _getPrizeSub(card.prizeType),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimensions.xxl),
+            SizedBox(
+              width: double.infinity,
+              child: FarchisButton(
+                label: 'Claim Reward',
+                onPressed: onClaim,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ScratchPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -669,7 +933,6 @@ class _ScratchPatternPainter extends CustomPainter {
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    // Draw subtle diagonal lines
     for (double i = -size.height; i < size.width + size.height; i += 20) {
       canvas.drawLine(
         Offset(i, 0),
@@ -678,7 +941,6 @@ class _ScratchPatternPainter extends CustomPainter {
       );
     }
 
-    // Draw subtle circles
     final circlePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.04)
       ..style = PaintingStyle.stroke
@@ -709,21 +971,5 @@ class _StepItem {
     required this.icon,
     required this.title,
     required this.subtitle,
-  });
-}
-
-class _PrizeItem {
-  final String title;
-  final String date;
-  final IconData icon;
-  final Color color;
-  final bool isUsed;
-
-  const _PrizeItem({
-    required this.title,
-    required this.date,
-    required this.icon,
-    required this.color,
-    required this.isUsed,
   });
 }

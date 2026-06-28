@@ -11,7 +11,7 @@ class VehicleRepository {
 
   Future<Result<UserModel>> updateVehicle(Map<String, dynamic> payload) async {
     try {
-      final response = await client.patch(ApiConstants.updateVehicle, body: payload);
+      final response = await client.put(ApiConstants.updateVehicle, body: payload);
       return Result.success(UserModel.fromJson(response['data']));
     } catch (e) {
       return _handleError(e);

@@ -3,18 +3,34 @@ import 'package:json_annotation/json_annotation.dart';
 part 'service_model.g.dart';
 
 @JsonEnum(fieldRename: FieldRename.snake)
-enum ServiceCategory { panel_beating, painting, repairs, custom }
+enum ServiceCategory {
+  panel_beating,
+  painting,
+  repairs,
+  custom,
+  detailing,
+  mechanical,
+  paint,
+  accessories,
+  bodywork,
+  wash,
+  tyres,
+  electrical,
+  other
+}
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class ServiceModel {
   final int id;
   final String name;
   final String slug;
   final String description;
+  @JsonKey(unknownEnumValue: ServiceCategory.other)
   final ServiceCategory category;
   final double price;
   final int durationMinutes;
   final bool isActive;
+  @JsonKey(name: 'image')
   final String? imageUrl;
 
   const ServiceModel({
@@ -56,4 +72,18 @@ class ServiceModel {
       imageUrl: imageUrl ?? this.imageUrl,
     );
   }
+
+  factory ServiceModel.placeholder() => const ServiceModel(
+        id: 0,
+        name: 'Full Vehicle Service',
+        slug: 'full-vehicle-service',
+        description: 'Comprehensive inspection and maintenance service',
+        category: ServiceCategory.mechanical,
+        price: 150.0,
+        durationMinutes: 120,
+        isActive: true,
+      );
+
+  static List<ServiceModel> placeholderList(int count) =>
+      List.generate(count, (index) => ServiceModel.placeholder().copyWith(id: index));
 }

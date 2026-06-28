@@ -1,6 +1,7 @@
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
@@ -179,11 +180,22 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
             const SizedBox(height: AppDimensions.xxl),
             BlocBuilder<ServicesBloc, ServicesState>(
               builder: (context, state) {
-                if (state is ServicesLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is ServicesLoaded) {
-                  final services = state.services;
-                  return GridView.builder(
+                final isLoading = state is ServicesLoading || state is ServicesInitial;
+                if (state is ServicesLoadFailed) {
+                  return const Center(child: Text('Failed to load services'));
+                }
+
+                final services = state is ServicesLoaded
+                    ? state.services
+                    : ServiceModel.placeholderList(6);
+
+                return Skeletonizer(
+                  enabled: isLoading,
+                  effect: ShimmerEffect(
+                    baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+                    highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+                  ),
+                  child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -204,11 +216,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         onTap: () => setState(() => _selectedServiceIndex = index),
                       );
                     },
-                  );
-                } else if (state is ServicesLoadFailed) {
-                  return const Center(child: Text('Failed to load services'));
-                }
-                return const SizedBox();
+                  ),
+                );
               },
             ),
           ],

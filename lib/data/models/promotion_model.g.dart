@@ -11,9 +11,9 @@ PromotionModel _$PromotionModelFromJson(Map<String, dynamic> json) =>
       id: (json['id'] as num).toInt(),
       title: json['title'] as String,
       body: json['body'] as String,
-      imageUrl: json['imageUrl'] as String?,
+      imageUrl: json['image'] as String?,
       type: $enumDecode(_$PromotionTypeEnumMap, json['type']),
-      isActive: json['isActive'] as bool,
+      isActive: json['is_active'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$PromotionModelToJson(PromotionModel instance) =>
@@ -21,9 +21,9 @@ Map<String, dynamic> _$PromotionModelToJson(PromotionModel instance) =>
       'id': instance.id,
       'title': instance.title,
       'body': instance.body,
-      'imageUrl': instance.imageUrl,
+      'image': instance.imageUrl,
       'type': _$PromotionTypeEnumMap[instance.type]!,
-      'isActive': instance.isActive,
+      'is_active': instance.isActive,
     };
 
 const _$PromotionTypeEnumMap = {

@@ -1,11 +1,9 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiConstants {
   ApiConstants._();
 
   static String get baseUrl {
-    return 'http://10.39.132.196:5000/api/v1';
+    return 'https://farchis.com/api/v1';
   }
 
   // Auth Endpoints

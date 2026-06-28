@@ -56,6 +56,10 @@ class _FarchisAppState extends State<FarchisApp> {
           BlocProvider.value(value: Injection.mapsBloc),
           BlocProvider.value(value: Injection.servicesBloc),
           BlocProvider.value(value: Injection.promotionBloc),
+          BlocProvider.value(value: Injection.galleryBloc),
+          BlocProvider.value(value: Injection.scratchCardBloc),
+          BlocProvider.value(value: Injection.referralBloc),
+          BlocProvider.value(value: Injection.notificationBloc),
         ],
         child: BlocBuilder<ThemeCubit, ThemeMode>(
           builder: (context, themeMode) {

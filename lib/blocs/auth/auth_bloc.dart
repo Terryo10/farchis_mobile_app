@@ -20,6 +20,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GoogleSignInRequested>(_onGoogleSignInRequested);
     on<UpdateFcmTokenEvent>(_onUpdateFcmTokenEvent);
     on<LogoutRequested>(_onLogoutRequested);
+    on<AuthUserUpdated>(_onAuthUserUpdated);
+  }
+
+  void _onAuthUserUpdated(AuthUserUpdated event, Emitter<AuthState> emit) {
+    emit(Authenticated(event.user));
   }
 
   Future<void> _onAuthCheckRequested(

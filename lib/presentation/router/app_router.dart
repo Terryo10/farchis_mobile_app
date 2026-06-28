@@ -17,6 +17,7 @@ import '../screens/loyalty/loyalty_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/gallery/gallery_screen.dart';
 import '../screens/referral/referral_screen.dart';
+import '../screens/notification/notification_list_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -46,6 +47,7 @@ class AppRouter extends RootStackRouter {
         AutoRoute(page: ScratchCardRoute.page, guards: [authGuard]),
         AutoRoute(page: GalleryRoute.page),
         AutoRoute(page: ReferralRoute.page, guards: [authGuard]),
+        AutoRoute(page: NotificationListRoute.page, guards: [authGuard]),
       ];
 
   static void navigateFromNotification(NotificationModel notification, AppRouter router) {

@@ -10,18 +10,18 @@ LeaderboardEntryModel _$LeaderboardEntryModelFromJson(
   Map<String, dynamic> json,
 ) => LeaderboardEntryModel(
   rank: (json['rank'] as num).toInt(),
-  userId: (json['userId'] as num).toInt(),
+  userId: (json['user_id'] as num).toInt(),
   name: json['name'] as String,
-  avatarUrl: json['avatarUrl'] as String?,
-  referralCount: (json['referralCount'] as num).toInt(),
+  avatarUrl: json['avatar_url'] as String?,
+  referralCount: (json['referral_count'] as num).toInt(),
 );
 
 Map<String, dynamic> _$LeaderboardEntryModelToJson(
   LeaderboardEntryModel instance,
 ) => <String, dynamic>{
   'rank': instance.rank,
-  'userId': instance.userId,
+  'user_id': instance.userId,
   'name': instance.name,
-  'avatarUrl': instance.avatarUrl,
-  'referralCount': instance.referralCount,
+  'avatar_url': instance.avatarUrl,
+  'referral_count': instance.referralCount,
 };

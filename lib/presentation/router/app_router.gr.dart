@@ -223,6 +223,22 @@ class MainLayoutRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [NotificationListScreen]
+class NotificationListRoute extends PageRouteInfo<void> {
+  const NotificationListRoute({List<PageRouteInfo>? children})
+    : super(NotificationListRoute.name, initialChildren: children);
+
+  static const String name = 'NotificationListRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const NotificationListScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [ProfileScreen]
 class ProfileRoute extends PageRouteInfo<void> {
   const ProfileRoute({List<PageRouteInfo>? children})

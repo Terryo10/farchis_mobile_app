@@ -5,12 +5,13 @@ part 'user_model.g.dart';
 @JsonEnum(fieldRename: FieldRename.snake)
 enum LoyaltyTier { bronze, silver, gold, platinum }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class UserModel {
   final int id;
   final String name;
   final String email;
   final String? phone;
+  @JsonKey(name: 'avatar')
   final String? avatarUrl;
   final String? referralCode;
   final LoyaltyTier? loyaltyTier;
