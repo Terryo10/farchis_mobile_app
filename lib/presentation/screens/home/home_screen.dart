@@ -21,6 +21,9 @@ import '../../../blocs/notification/notification_event.dart';
 import '../../../blocs/notification/notification_state.dart';
 import '../../../blocs/auth/auth_bloc.dart';
 import '../../../blocs/auth/auth_state.dart';
+import '../../../blocs/loyalty/loyalty_bloc.dart';
+import '../../../blocs/loyalty/loyalty_event.dart';
+import '../../../blocs/loyalty/loyalty_state.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -35,7 +38,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final List<Animation<double>> _fadeAnimations;
   late final List<Animation<Offset>> _slideAnimations;
 
+  // Carousel state
+  final PageController _carouselController = PageController();
+  int _carouselPage = 0;
+
   static const int _cardCount = 4;
+
+  // Fallback promo cards shown when API fails or returns empty
+  static const List<_PromoCardData> _fallbackPromos = [
+    _PromoCardData(
+      title: 'Full Valet',
+      subtitle: 'Complete interior & exterior — from \$140',
+      gradientStart: Color(0xFF182B49),
+      gradientEnd: Color(0xFF0A1321),
+    ),
+    _PromoCardData(
+      title: 'Engine Wash',
+      subtitle: 'Professional engine degreasing — from \$15',
+      gradientStart: Color(0xFF1A3560),
+      gradientEnd: Color(0xFF111F36),
+    ),
+    _PromoCardData(
+      title: 'Quick Wash',
+      subtitle: 'Express exterior wash in under 30 min',
+      gradientStart: Color(0xFF253971),
+      gradientEnd: Color(0xFF182B49),
+    ),
+  ];
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -47,7 +76,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Trigger data fetches
     context.read<NotificationBloc>().add(const GetNotificationsEvent());
+    context.read<PromotionBloc>().add(const GetPromotionsEvent());
+
+    // Ensure loyalty points are loaded for the header pill
+    final loyaltyState = context.read<LoyaltyBloc>().state;
+    if (loyaltyState is LoyaltyInitial) {
+      context.read<LoyaltyBloc>().add(const GetLoyaltyWalletEvent());
+    }
+
+    // Stagger animation for service cards
     _staggerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -81,12 +121,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     _staggerController.forward();
-    context.read<PromotionBloc>().add(const GetPromotionsEvent());
   }
 
   @override
   void dispose() {
     _staggerController.dispose();
+    _carouselController.dispose();
     super.dispose();
   }
 
@@ -129,13 +169,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const SizedBox(height: AppDimensions.lg),
                     _buildServicesGrid(context),
 
+                    // --- Promo Carousel ---
+                    const SizedBox(height: AppDimensions.xxxl),
+                    _buildPromoCarousel(context, theme, isDark),
+
+                    // --- Trust / Heritage Strip ---
+                    const SizedBox(height: AppDimensions.xxl),
+                    _buildTrustStrip(context, theme, isDark),
+
                     // --- Recent Bookings ---
                     const SizedBox(height: AppDimensions.xxxl),
                     _buildRecentBookings(context, theme, isDark),
-
-                    // --- Special Offers ---
-                    const SizedBox(height: AppDimensions.xxxl),
-                    _buildSpecialOffers(context, theme, isDark),
 
                     // Bottom padding for floating nav
                     const SizedBox(height: 120),
@@ -180,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Text(
                     _greeting,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xB3FFFFFF), // white70
+                      color: const Color(0xB3FFFFFF),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -193,34 +237,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: AppDimensions.xxl),
+                  // ── Header chips row ──────────────────────────────────
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, authState) {
                       final isAuthenticated = authState is Authenticated;
-                      final label = isAuthenticated ? authState.user.name : 'Guest — sign in';
-                      final vehicleLabel = (isAuthenticated && authState.user.vehicleMake != null)
+                      final label = isAuthenticated
+                          ? authState.user.name
+                          : 'Guest — sign in';
+                      final vehicleLabel = (isAuthenticated &&
+                              authState.user.vehicleMake != null)
                           ? '${authState.user.vehicleMake} ${authState.user.vehicleModel}'
                           : 'Add Vehicle';
 
-                      return Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => context.router.push(const ProfileRoute()),
-                            child: _GlassStatusChip(
-                              icon: Icons.person_outline_rounded,
-                              label: label,
-                              brightness: 1.0,
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        clipBehavior: Clip.none,
+                        child: Row(
+                          children: [
+                            // Name chip
+                            GestureDetector(
+                              onTap: () =>
+                                  context.router.push(const ProfileRoute()),
+                              child: _GlassStatusChip(
+                                icon: Icons.person_outline_rounded,
+                                label: label,
+                                brightness: 1.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppDimensions.md),
-                          GestureDetector(
-                            onTap: () => context.router.push(const ProfileRoute()),
-                            child: _GlassStatusChip(
-                              icon: Icons.directions_car_rounded,
-                              label: vehicleLabel,
-                              brightness: 0.7,
+                            const SizedBox(width: AppDimensions.md),
+                            // Vehicle chip
+                            GestureDetector(
+                              onTap: () =>
+                                  context.router.push(const ProfileRoute()),
+                              child: _GlassStatusChip(
+                                icon: Icons.directions_car_rounded,
+                                label: vehicleLabel,
+                                brightness: 0.7,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppDimensions.md),
+                            // Loyalty points pill ──────────────────────────
+                            _buildLoyaltyPill(context),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -234,7 +294,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       actions: [
         BlocBuilder<NotificationBloc, NotificationState>(
           builder: (context, state) {
-            final unreadCount = state.notifications.where((n) => !n.isRead).length;
+            final unreadCount =
+                state.notifications.where((n) => !n.isRead).length;
 
             return Stack(
               alignment: Alignment.center,
@@ -254,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.error,
+                        color: Theme.of(context).colorScheme.error,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -278,6 +339,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(width: AppDimensions.xs),
       ],
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // STEP 1: Loyalty Points Pill
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Widget _buildLoyaltyPill(BuildContext context) {
+    return BlocBuilder<LoyaltyBloc, LoyaltyState>(
+      builder: (context, state) {
+        final isLoading = state is LoyaltyInitial || state is LoyaltyLoading;
+        final points = state is LoyaltyLoaded ? state.wallet.balance : 0;
+        final label = '$points pts';
+
+        return Skeletonizer(
+          enabled: isLoading,
+          effect: const ShimmerEffect(
+            baseColor: Color(0x33FFFFFF),
+            highlightColor: Color(0x55FFFFFF),
+          ),
+          child: GestureDetector(
+            onTap: () {
+              // Navigate to Rewards tab (index 2)
+              AutoTabsRouter.of(context).setActiveIndex(2);
+            },
+            child: _GlassStatusChip(
+              icon: Icons.stars_rounded,
+              label: isLoading ? '--- pts' : label,
+              brightness: 0.9,
+              accentColor: const Color(0xFFc9a84c), // gold star tint
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -310,8 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ];
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
       child: GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
@@ -344,6 +438,188 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // STEP 2: Promo Carousel (replaces Special Offers)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Widget _buildPromoCarousel(
+      BuildContext context, ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+          child: Text('Featured Services', style: theme.textTheme.titleLarge),
+        ),
+        const SizedBox(height: AppDimensions.md),
+        BlocBuilder<PromotionBloc, PromotionState>(
+          builder: (context, state) {
+            final isLoading =
+                state is PromotionLoading || state is PromotionInitial;
+            final hasFailed = state is PromotionLoadFailed;
+            final isEmpty =
+                state is PromotionsLoaded && state.promotions.isEmpty;
+
+            // On failure or empty — show fallback cards (never an error message)
+            final useFallback = hasFailed || isEmpty;
+
+            final promotions = (!useFallback && state is PromotionsLoaded)
+                ? state.promotions
+                : PromotionModel.placeholderList(3);
+
+            final itemCount =
+                useFallback ? _fallbackPromos.length : promotions.length;
+
+            return Skeletonizer(
+              enabled: isLoading,
+              effect: ShimmerEffect(
+                baseColor:
+                    const Color(0xFF253971).withValues(alpha: 0.08),
+                highlightColor:
+                    const Color(0xFF253971).withValues(alpha: 0.15),
+              ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 200,
+                    child: PageView.builder(
+                      controller: _carouselController,
+                      onPageChanged: (page) {
+                        setState(() => _carouselPage = page);
+                      },
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        if (useFallback) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppDimensions.xxl),
+                            child: _FallbackPromoCard(
+                              data: _fallbackPromos[index],
+                              onTap: () => context.router
+                                  .push(const CreateBookingRoute()),
+                            ),
+                          );
+                        }
+                        final promo = promotions[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppDimensions.xxl),
+                          child: _PromoCard(
+                            promotion: promo,
+                            onTap: () => context.router
+                                .push(const CreateBookingRoute()),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  // Dot indicators
+                  if (!isLoading)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(itemCount, (index) {
+                        final isActive = _carouselPage == index;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: isActive ? 20 : 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppColors.navyPrimary
+                                : (isDark
+                                    ? const Color(0x55FFFFFF)
+                                    : AppColors.navyPrimary
+                                        .withValues(alpha: 0.25)),
+                            borderRadius: BorderRadius.circular(
+                                AppDimensions.radiusCircle),
+                          ),
+                        );
+                      }),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // STEP 4: Trust / Heritage Strip
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Widget _buildTrustStrip(BuildContext context, ThemeData theme, bool isDark) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.lg,
+          vertical: AppDimensions.md,
+        ),
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.navyPrimary.withValues(alpha: 0.15)
+              : AppColors.navyPrimary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: isDark
+                ? AppColors.navyLight.withValues(alpha: 0.3)
+                : AppColors.navyPrimary.withValues(alpha: 0.1),
+          ),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Expanded(
+                child: _TrustChip(
+                  icon: Icons.history_edu_rounded,
+                  value: '30+',
+                  caption: 'Years of Service',
+                  isDark: isDark,
+                ),
+              ),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: isDark
+                    ? AppColors.navyLight.withValues(alpha: 0.4)
+                    : AppColors.navyPrimary.withValues(alpha: 0.15),
+              ),
+              Expanded(
+                child: _TrustChip(
+                  icon: Icons.verified_rounded,
+                  value: 'ISO 9001',
+                  caption: 'Certified',
+                  isDark: isDark,
+                ),
+              ),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: isDark
+                    ? AppColors.navyLight.withValues(alpha: 0.4)
+                    : AppColors.navyPrimary.withValues(alpha: 0.15),
+              ),
+              Expanded(
+                child: _TrustChip(
+                  icon: Icons.people_rounded,
+                  value: '1000+',
+                  caption: 'Happy Customers',
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Recent Bookings
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -360,7 +636,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Text('Recent Bookings', style: theme.textTheme.titleLarge),
               TextButton(
-                onPressed: () => context.router.push(const BookingListRoute()),
+                onPressed: () =>
+                    context.router.push(const BookingListRoute()),
                 style: TextButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
                   padding: EdgeInsets.zero,
@@ -370,7 +647,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Text(
                   'View All',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
+                    color: isDark
+                        ? AppColors.darkAccent
+                        : AppColors.lightAccent,
                   ),
                 ),
               ),
@@ -380,7 +659,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: AppDimensions.md),
         BlocBuilder<BookingBloc, BookingState>(
           builder: (context, state) {
-            final isLoading = state is BookingLoading || state is BookingInitial;
+            final isLoading =
+                state is BookingLoading || state is BookingInitial;
             if (state is BookingError) {
               return const SizedBox();
             }
@@ -389,132 +669,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ? state.active.take(3).toList()
                 : BookingModel.placeholderList(3);
 
+            // STEP 3: Improved empty state with CTA button
             if (state is BookingsLoaded && bookings.isEmpty) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppDimensions.xl),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.navyDark : AppColors.white,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                    border: Border.all(
-                      color: isDark ? AppColors.navyLight : AppColors.lightBorder,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.history_rounded,
-                        size: 48,
-                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                      ),
-                      const SizedBox(height: AppDimensions.md),
-                      Text(
-                        'No recent bookings',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppDimensions.sm),
-                      Text(
-                        'Your booking history will appear here',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.xxl),
+                child: _EmptyBookingsState(isDark: isDark),
               );
             }
 
             return Skeletonizer(
               enabled: isLoading,
               effect: ShimmerEffect(
-                baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
-                highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+                baseColor:
+                    const Color(0xFF253971).withValues(alpha: 0.08),
+                highlightColor:
+                    const Color(0xFF253971).withValues(alpha: 0.15),
               ),
               child: ListView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.xxl),
                 children: bookings
                     .map((b) => _BookingCard(booking: b, isDark: isDark))
                     .toList(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Special Offers
-  // ──────────────────────────────────────────────────────────────────────────
-
-  Widget _buildSpecialOffers(
-      BuildContext context, ThemeData theme, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-          child: Text('Special Offers', style: theme.textTheme.titleLarge),
-        ),
-        const SizedBox(height: AppDimensions.md),
-        BlocBuilder<PromotionBloc, PromotionState>(
-          builder: (context, state) {
-            final isLoading = state is PromotionLoading || state is PromotionInitial;
-            if (state is PromotionLoadFailed) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                child: Text('Failed to load special offers'),
-              );
-            }
-
-            final offers = state is PromotionsLoaded
-                ? state.promotions
-                : PromotionModel.placeholderList(3);
-
-            if (state is PromotionsLoaded && offers.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                child: Text('No special offers at the moment', style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                )),
-              );
-            }
-
-            return Skeletonizer(
-              enabled: isLoading,
-              effect: ShimmerEffect(
-                baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
-                highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
-              ),
-              child: SizedBox(
-                height: 140,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.xxl),
-                  itemCount: offers.length,
-                  itemBuilder: (context, index) {
-                    final offer = offers[index];
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        right: index < offers.length - 1
-                            ? AppDimensions.lg
-                            : 0,
-                      ),
-                      child: _OfferCard(offer: offer, isDark: isDark),
-                    );
-                  },
-                ),
               ),
             );
           },
@@ -532,17 +711,20 @@ class _GlassStatusChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final double brightness;
+  final Color? accentColor;
 
   const _GlassStatusChip({
     required this.icon,
     required this.label,
     required this.brightness,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final labelColor =
         brightness >= 1.0 ? AppColors.white : const Color(0xB3FFFFFF);
+    final iconColor = accentColor ?? labelColor;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
@@ -554,14 +736,14 @@ class _GlassStatusChip extends StatelessWidget {
             vertical: AppDimensions.sm,
           ),
           decoration: BoxDecoration(
-            color: const Color(0x1AFFFFFF), // white ~10%
+            color: const Color(0x1AFFFFFF),
             borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
-            border: Border.all(color: const Color(0x33FFFFFF)), // white ~20%
+            border: Border.all(color: const Color(0x33FFFFFF)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: AppDimensions.iconXs, color: labelColor),
+              Icon(icon, size: AppDimensions.iconXs, color: iconColor),
               const SizedBox(width: AppDimensions.sm - 2),
               Text(
                 label,
@@ -580,7 +762,7 @@ class _GlassStatusChip extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Action Card (Material InkWell + gradient press overlay)
+// Action Card (Material InkWell + gradient press overlay) — STEP 6 polish
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ActionCardData {
@@ -624,6 +806,8 @@ class _ActionCardState extends State<_ActionCard> {
       child: Material(
         color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+        // STEP 6: elevated shadow for depth
+        elevation: 0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
@@ -632,22 +816,31 @@ class _ActionCardState extends State<_ActionCard> {
             border: Border.all(
               color: isDark ? AppColors.navyLight : AppColors.lightBorder,
             ),
-            boxShadow: [
-              if (!isDark)
-                const BoxShadow(
-                  color: Color(0x08000000), // black ~3%
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-            ],
+            // Elevated shadow
+            boxShadow: _pressed
+                ? []
+                : [
+                    BoxShadow(
+                      color: AppColors.navyPrimary
+                          .withValues(alpha: isDark ? 0.25 : 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                    if (!isDark)
+                      const BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                  ],
             gradient: _pressed
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
                       isDark
-                          ? const Color(0x0DFFFFFF) // white ~5%
-                          : const Color(0x0A10213B), // navyPrimary ~4%
+                          ? const Color(0x0DFFFFFF)
+                          : const Color(0x0A10213B),
                       isDark
                           ? const Color(0x05FFFFFF)
                           : const Color(0x0510213B),
@@ -662,8 +855,8 @@ class _ActionCardState extends State<_ActionCard> {
             onTapCancel: () => setState(() => _pressed = false),
             borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
             splashColor: isDark
-                ? const Color(0x1AFFFFFF) // white ~10%
-                : const Color(0x1A10213B), // navyPrimary ~10%
+                ? const Color(0x1AFFFFFF)
+                : const Color(0x1A10213B),
             highlightColor: isDark
                 ? const Color(0x0DFFFFFF)
                 : const Color(0x0D10213B),
@@ -677,10 +870,19 @@ class _ActionCardState extends State<_ActionCard> {
                         ? AppColors.navyDark
                         : AppColors.silverLight,
                     shape: BoxShape.circle,
+                    // Subtle inner shadow accent on the icon container
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navyPrimary
+                            .withValues(alpha: isDark ? 0.3 : 0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     widget.icon,
-                    size: AppDimensions.iconLg - 4,
+                    size: AppDimensions.iconLg, // STEP 6: full iconLg (was -4)
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -693,6 +895,417 @@ class _ActionCardState extends State<_ActionCard> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 3: Improved Empty Bookings State
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _EmptyBookingsState extends StatelessWidget {
+  final bool isDark;
+
+  const _EmptyBookingsState({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.xl,
+        vertical: AppDimensions.xxxl,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.navyDark : AppColors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: isDark ? AppColors.navyLight : AppColors.lightBorder,
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: AppColors.navyPrimary.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Icon in a rounded container with navy tint
+          Container(
+            padding: const EdgeInsets.all(AppDimensions.xl),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.navyPrimary.withValues(alpha: 0.3)
+                  : AppColors.navyPrimary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.car_repair_rounded,
+              size: 56,
+              color: isDark
+                  ? AppColors.silverLight
+                  : AppColors.navyPrimary,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.xl),
+          // Headline
+          Text(
+            'No bookings yet',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppDimensions.sm),
+          // Subtext
+          Text(
+            'Book your first service and start earning rewards',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppDimensions.xxl),
+          // CTA Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () =>
+                  context.router.push(const CreateBookingRoute()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.navyPrimary,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppDimensions.md),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(AppDimensions.radiusLg),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Book Now',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 2: Promo Card (API-backed)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _PromoCard extends StatelessWidget {
+  final PromotionModel promotion;
+  final VoidCallback onTap;
+
+  const _PromoCard({required this.promotion, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage =
+        promotion.imageUrl != null && promotion.imageUrl!.isNotEmpty;
+
+    return Material(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background: image or gradient
+            if (hasImage)
+              Image.network(
+                promotion.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _navyGradientBox(),
+              )
+            else
+              _navyGradientBox(),
+
+            // Dark gradient overlay for readability
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.3, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.72),
+                  ],
+                ),
+              ),
+            ),
+
+            // Text content
+            Padding(
+              padding: const EdgeInsets.all(AppDimensions.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    promotion.title,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.xs),
+                  Text(
+                    promotion.body,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xCCFFFFFF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navyGradientBox() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.navyPrimary, AppColors.navyDarkest],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 2: Fallback Promo Card (shown on API failure / empty)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _PromoCardData {
+  final String title;
+  final String subtitle;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  const _PromoCardData({
+    required this.title,
+    required this.subtitle,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+}
+
+class _FallbackPromoCard extends StatelessWidget {
+  final _PromoCardData data;
+  final VoidCallback onTap;
+
+  const _FallbackPromoCard({required this.data, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [data.gradientStart, data.gradientEnd],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Decorative pattern overlay
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.04),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 20,
+                bottom: -40,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.03),
+                  ),
+                ),
+              ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(AppDimensions.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.sm,
+                        vertical: AppDimensions.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusSm),
+                      ),
+                      child: const Text(
+                        'FARCHIS AUTOMOTIVE',
+                        style: TextStyle(
+                          color: Color(0xCCFFFFFF),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      data.title,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.xs),
+                    Text(
+                      data.subtitle,
+                      style: const TextStyle(
+                        color: Color(0xCCFFFFFF),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+                    Row(
+                      children: [
+                        const Text(
+                          'Book Now',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(width: AppDimensions.xs),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.white,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 4: Trust Chip (used in heritage strip)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _TrustChip extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String caption;
+  final bool isDark;
+
+  const _TrustChip({
+    required this.icon,
+    required this.value,
+    required this.caption,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.sm,
+        vertical: AppDimensions.xs,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: AppDimensions.iconSm,
+            color: isDark
+                ? AppColors.silverLight
+                : AppColors.navyPrimary,
+          ),
+          const SizedBox(height: AppDimensions.xs),
+          Text(
+            value,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.navyPrimary,
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            caption,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextSecondary,
+              fontSize: 10,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -780,84 +1393,6 @@ class _BookingCard extends StatelessWidget {
                       : AppColors.lightTextTertiary,
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ===========================================================================
-// Offer Card
-// ===========================================================================
-
-class _OfferCard extends StatelessWidget {
-  final PromotionModel offer;
-  final bool isDark;
-
-  const _OfferCard({required this.offer, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 280,
-      height: 140,
-      child: Material(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {},
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.navyPrimary,
-                  isDark ? AppColors.navyLight : AppColors.navyDark,
-                ],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppDimensions.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        offer.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppDimensions.xs),
-                      Text(
-                        offer.body,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xCCFFFFFF), // white ~80%
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Learn More →',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
