@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/booking/booking_bloc.dart';
@@ -15,6 +16,11 @@ import '../../../blocs/promotion/promotion_bloc.dart';
 import '../../../blocs/promotion/promotion_event.dart';
 import '../../../blocs/promotion/promotion_state.dart';
 import '../../../data/models/promotion_model.dart';
+import '../../../blocs/notification/notification_bloc.dart';
+import '../../../blocs/notification/notification_event.dart';
+import '../../../blocs/notification/notification_state.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -41,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    context.read<NotificationBloc>().add(const GetNotificationsEvent());
     _staggerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -186,23 +193,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: AppDimensions.xxl),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => context.router.push(const ProfileRoute()),
-                        child: _GlassStatusChip(
-                          icon: Icons.person_outline_rounded,
-                          label: 'Guest — sign in',
-                          brightness: 1.0,
-                        ),
-                      ),
-                      const SizedBox(width: AppDimensions.md),
-                      _GlassStatusChip(
-                        icon: Icons.directions_car_rounded,
-                        label: 'Add Vehicle',
-                        brightness: 0.7,
-                      ),
-                    ],
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, authState) {
+                      final isAuthenticated = authState is Authenticated;
+                      final label = isAuthenticated ? authState.user.name : 'Guest — sign in';
+                      final vehicleLabel = (isAuthenticated && authState.user.vehicleMake != null)
+                          ? '${authState.user.vehicleMake} ${authState.user.vehicleModel}'
+                          : 'Add Vehicle';
+
+                      return Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => context.router.push(const ProfileRoute()),
+                            child: _GlassStatusChip(
+                              icon: Icons.person_outline_rounded,
+                              label: label,
+                              brightness: 1.0,
+                            ),
+                          ),
+                          const SizedBox(width: AppDimensions.md),
+                          GestureDetector(
+                            onTap: () => context.router.push(const ProfileRoute()),
+                            child: _GlassStatusChip(
+                              icon: Icons.directions_car_rounded,
+                              label: vehicleLabel,
+                              brightness: 0.7,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: AppDimensions.lg),
                 ],
@@ -212,11 +232,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_none_rounded,
-              color: AppColors.white),
-          onPressed: () {},
-          tooltip: 'Notifications',
+        BlocBuilder<NotificationBloc, NotificationState>(
+          builder: (context, state) {
+            final unreadCount = state.notifications.where((n) => !n.isRead).length;
+
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none_rounded,
+                      color: AppColors.white),
+                  onPressed: () {
+                    context.router.push(const NotificationListRoute());
+                  },
+                  tooltip: 'Notifications',
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         const SizedBox(width: AppDimensions.xs),
       ],
@@ -322,51 +380,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: AppDimensions.md),
         BlocBuilder<BookingBloc, BookingState>(
           builder: (context, state) {
-            if (state is BookingLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is BookingsLoaded) {
-              final bookings = state.active.take(3).toList();
-              if (bookings.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppDimensions.xl),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.navyDark : AppColors.white,
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                      border: Border.all(
-                        color: isDark ? AppColors.navyLight : AppColors.lightBorder,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 48,
-                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                        ),
-                        const SizedBox(height: AppDimensions.md),
-                        Text(
-                          'No recent bookings',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.sm),
-                        Text(
-                          'Your booking history will appear here',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                          ),
-                        ),
-                      ],
+            final isLoading = state is BookingLoading || state is BookingInitial;
+            if (state is BookingError) {
+              return const SizedBox();
+            }
+
+            final bookings = state is BookingsLoaded
+                ? state.active.take(3).toList()
+                : BookingModel.placeholderList(3);
+
+            if (state is BookingsLoaded && bookings.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppDimensions.xl),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.navyDark : AppColors.white,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                    border: Border.all(
+                      color: isDark ? AppColors.navyLight : AppColors.lightBorder,
                     ),
                   ),
-                );
-              }
-              return ListView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        size: 48,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      ),
+                      const SizedBox(height: AppDimensions.md),
+                      Text(
+                        'No recent bookings',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.sm),
+                      Text(
+                        'Your booking history will appear here',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Skeletonizer(
+              enabled: isLoading,
+              effect: ShimmerEffect(
+                baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+                highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+              ),
+              child: ListView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding:
@@ -374,9 +444,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: bookings
                     .map((b) => _BookingCard(booking: b, isDark: isDark))
                     .toList(),
-              );
-            }
-            return const SizedBox();
+              ),
+            );
           },
         ),
       ],
@@ -400,19 +469,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: AppDimensions.md),
         BlocBuilder<PromotionBloc, PromotionState>(
           builder: (context, state) {
-            if (state is PromotionLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is PromotionsLoaded) {
-              final offers = state.promotions;
-              if (offers.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                  child: Text('No special offers at the moment', style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  )),
-                );
-              }
-              return SizedBox(
+            final isLoading = state is PromotionLoading || state is PromotionInitial;
+            if (state is PromotionLoadFailed) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                child: Text('Failed to load special offers'),
+              );
+            }
+
+            final offers = state is PromotionsLoaded
+                ? state.promotions
+                : PromotionModel.placeholderList(3);
+
+            if (state is PromotionsLoaded && offers.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
+                child: Text('No special offers at the moment', style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                )),
+              );
+            }
+
+            return Skeletonizer(
+              enabled: isLoading,
+              effect: ShimmerEffect(
+                baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+                highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+              ),
+              child: SizedBox(
                 height: 140,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -431,14 +515,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
-              );
-            } else if (state is PromotionLoadFailed) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-                child: Text('Failed to load special offers'),
-              );
-            }
-            return const SizedBox();
+              ),
+            );
           },
         ),
       ],

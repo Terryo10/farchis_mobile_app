@@ -21,7 +21,7 @@ class NotificationRepository {
 
   Future<Result<bool>> markAsRead(String id) async {
     try {
-      await client.patch(ApiConstants.markNotificationRead(id));
+      await client.post(ApiConstants.markNotificationRead(id));
       return Result.success(true);
     } catch (e) {
       return _handleError(e);
@@ -30,7 +30,7 @@ class NotificationRepository {
 
   Future<Result<bool>> markAllAsRead() async {
     try {
-      await client.patch(ApiConstants.markAllNotificationsRead);
+      await client.post(ApiConstants.markAllNotificationsRead);
       return Result.success(true);
     } catch (e) {
       return _handleError(e);

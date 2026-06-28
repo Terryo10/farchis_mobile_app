@@ -11,11 +11,15 @@ ServiceModel _$ServiceModelFromJson(Map<String, dynamic> json) => ServiceModel(
   name: json['name'] as String,
   slug: json['slug'] as String,
   description: json['description'] as String,
-  category: $enumDecode(_$ServiceCategoryEnumMap, json['category']),
+  category: $enumDecode(
+    _$ServiceCategoryEnumMap,
+    json['category'],
+    unknownValue: ServiceCategory.other,
+  ),
   price: (json['price'] as num).toDouble(),
-  durationMinutes: (json['durationMinutes'] as num).toInt(),
-  isActive: json['isActive'] as bool,
-  imageUrl: json['imageUrl'] as String?,
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  isActive: json['is_active'] as bool,
+  imageUrl: json['image'] as String?,
 );
 
 Map<String, dynamic> _$ServiceModelToJson(ServiceModel instance) =>
@@ -26,9 +30,9 @@ Map<String, dynamic> _$ServiceModelToJson(ServiceModel instance) =>
       'description': instance.description,
       'category': _$ServiceCategoryEnumMap[instance.category]!,
       'price': instance.price,
-      'durationMinutes': instance.durationMinutes,
-      'isActive': instance.isActive,
-      'imageUrl': instance.imageUrl,
+      'duration_minutes': instance.durationMinutes,
+      'is_active': instance.isActive,
+      'image': instance.imageUrl,
     };
 
 const _$ServiceCategoryEnumMap = {
@@ -36,4 +40,13 @@ const _$ServiceCategoryEnumMap = {
   ServiceCategory.painting: 'painting',
   ServiceCategory.repairs: 'repairs',
   ServiceCategory.custom: 'custom',
+  ServiceCategory.detailing: 'detailing',
+  ServiceCategory.mechanical: 'mechanical',
+  ServiceCategory.paint: 'paint',
+  ServiceCategory.accessories: 'accessories',
+  ServiceCategory.bodywork: 'bodywork',
+  ServiceCategory.wash: 'wash',
+  ServiceCategory.tyres: 'tyres',
+  ServiceCategory.electrical: 'electrical',
+  ServiceCategory.other: 'other',
 };

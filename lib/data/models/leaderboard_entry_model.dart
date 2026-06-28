@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'leaderboard_entry_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class LeaderboardEntryModel {
   final int rank;
   final int userId;

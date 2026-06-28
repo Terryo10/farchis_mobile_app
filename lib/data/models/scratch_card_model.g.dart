@@ -9,23 +9,23 @@ part of 'scratch_card_model.dart';
 ScratchCardModel _$ScratchCardModelFromJson(Map<String, dynamic> json) =>
     ScratchCardModel(
       id: (json['id'] as num).toInt(),
-      prizeType: $enumDecode(_$PrizeTypeEnumMap, json['prizeType']),
-      prizeValue: (json['prizeValue'] as num).toDouble(),
-      isScratched: json['isScratched'] as bool,
-      scratchedAt: json['scratchedAt'] == null
+      prizeType: $enumDecode(_$PrizeTypeEnumMap, json['prize_type']),
+      prizeValue: (json['prize_value'] as num).toDouble(),
+      isScratched: json['is_scratched'] as bool,
+      scratchedAt: json['scratched_at'] == null
           ? null
-          : DateTime.parse(json['scratchedAt'] as String),
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
+          : DateTime.parse(json['scratched_at'] as String),
+      expiresAt: DateTime.parse(json['expires_at'] as String),
     );
 
 Map<String, dynamic> _$ScratchCardModelToJson(ScratchCardModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'prizeType': _$PrizeTypeEnumMap[instance.prizeType]!,
-      'prizeValue': instance.prizeValue,
-      'isScratched': instance.isScratched,
-      'scratchedAt': instance.scratchedAt?.toIso8601String(),
-      'expiresAt': instance.expiresAt.toIso8601String(),
+      'prize_type': _$PrizeTypeEnumMap[instance.prizeType]!,
+      'prize_value': instance.prizeValue,
+      'is_scratched': instance.isScratched,
+      'scratched_at': instance.scratchedAt?.toIso8601String(),
+      'expires_at': instance.expiresAt.toIso8601String(),
     };
 
 const _$PrizeTypeEnumMap = {

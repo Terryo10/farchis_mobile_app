@@ -5,7 +5,7 @@ part 'scratch_card_model.g.dart';
 @JsonEnum(fieldRename: FieldRename.snake)
 enum PrizeType { discount, free_valet, bonus_points }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class ScratchCardModel {
   final int id;
   final PrizeType prizeType;

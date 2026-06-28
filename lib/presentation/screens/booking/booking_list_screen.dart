@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../blocs/booking/booking_bloc.dart';
 import '../../../data/models/booking_model.dart';
 
@@ -68,223 +69,253 @@ class _BookingListScreenState extends State<BookingListScreen>
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: AppDimensions.huge + 20),
-        child: FloatingActionButton.extended(
-          onPressed: () => context.router.push(const CreateBookingRoute()),
-          backgroundColor: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
-          foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.lightOnPrimary,
-          elevation: 6,
-          icon: const Icon(Icons.add_rounded, size: 22),
-          label: Text(
-            'Book Service',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: isDark ? AppColors.darkOnPrimary : AppColors.lightOnPrimary,
-            ),
-          ),
-        ),
-      ),
       body: BlocBuilder<BookingBloc, BookingState>(
         builder: (context, state) {
+          final isLoading = state is BookingLoading || state is BookingInitial;
+          if (state is BookingError) {
+            return Center(child: Text('Failed to load bookings: ${state.failure.message}'));
+          }
+
           List<BookingModel> bookings = [];
           if (state is BookingsLoaded) {
             final allBookings = [...state.active, ...state.past];
             bookings = _getFilteredBookings(allBookings);
-          } else if (state is BookingLoading || state is BookingInitial) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is BookingError) {
-            return Center(child: Text('Failed to load bookings: ${state.failure.message}'));
+          } else {
+            bookings = BookingModel.placeholderList(4);
           }
 
-          return CustomScrollView(
-            slivers: [
-              // --- Custom SliverAppBar ---
-              SliverAppBar(
-                expandedHeight: 140,
-                pinned: true,
-                backgroundColor: isDark ? AppColors.navyDarkest : AppColors.navyPrimary,
-                automaticallyImplyLeading: false,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          isDark ? AppColors.navyDark : AppColors.navyPrimary,
-                          isDark ? AppColors.navyDarkest : AppColors.navyDark,
-                        ],
-                      ),
-                    ),
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppDimensions.xxl,
-                          AppDimensions.lg,
-                          AppDimensions.xxl,
-                          AppDimensions.lg,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              'My Bookings',
-                              style: theme.textTheme.displaySmall?.copyWith(
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: AppDimensions.xs),
-                            Text(
-                              '${bookings.length} total bookings',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white60,
-                              ),
-                            ),
+          return Skeletonizer(
+            enabled: isLoading,
+            effect: ShimmerEffect(
+              baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+              highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+            ),
+            child: CustomScrollView(
+              slivers: [
+                // --- Custom SliverAppBar ---
+                SliverAppBar(
+                  expandedHeight: 140,
+                  pinned: true,
+                  backgroundColor: isDark ? AppColors.navyDarkest : AppColors.navyPrimary,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            isDark ? AppColors.navyDark : AppColors.navyPrimary,
+                            isDark ? AppColors.navyDarkest : AppColors.navyDark,
                           ],
                         ),
                       ),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppDimensions.xxl,
+                            AppDimensions.lg,
+                            AppDimensions.xxl,
+                            AppDimensions.lg,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'My Bookings',
+                                    style: theme.textTheme.displaySmall?.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Material(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(AppDimensions.radiusCircle),
+                                    child: InkWell(
+                                      onTap: () => context.router.push(const CreateBookingRoute()),
+                                      borderRadius: BorderRadius.circular(AppDimensions.radiusCircle),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppDimensions.md,
+                                          vertical: AppDimensions.sm,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                            const SizedBox(width: AppDimensions.xs),
+                                            Text(
+                                              'Book',
+                                              style: theme.textTheme.labelMedium?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppDimensions.xs),
+                              Text(
+                                '${bookings.length} total bookings',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white60,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-          // --- Filter Chips ---
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppDimensions.radiusXl),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppDimensions.xxl,
-                  AppDimensions.xxl,
-                  AppDimensions.xxl,
-                  AppDimensions.md,
-                ),
-                child: SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: AppDimensions.sm),
-                    itemBuilder: (context, index) {
-                      final isSelected = _selectedFilterIndex == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedFilterIndex = index);
-                          _staggerController.reset();
-                          _staggerController.forward();
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppDimensions.lg,
-                            vertical: AppDimensions.sm,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? (isDark
-                                    ? AppColors.darkPrimary
-                                    : AppColors.lightPrimary)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(
-                              AppDimensions.radiusCircle,
-                            ),
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.transparent
-                                  : theme.colorScheme.outline,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _filters[index],
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: isSelected
-                                    ? (isDark
-                                        ? AppColors.darkOnPrimary
-                                        : AppColors.lightOnPrimary)
-                                    : theme.textTheme.bodyMedium?.color,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                // --- Filter Chips ---
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.scaffoldBackgroundColor,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppDimensions.radiusXl),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimensions.xxl,
+                        AppDimensions.xxl,
+                        AppDimensions.xxl,
+                        AppDimensions.md,
+                      ),
+                      child: SizedBox(
+                        height: 40,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _filters.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: AppDimensions.sm),
+                          itemBuilder: (context, index) {
+                            final isSelected = _selectedFilterIndex == index;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() => _selectedFilterIndex = index);
+                                _staggerController.reset();
+                                _staggerController.forward();
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOutCubic,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppDimensions.lg,
+                                  vertical: AppDimensions.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? (isDark
+                                          ? AppColors.darkPrimary
+                                          : AppColors.lightPrimary)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                    AppDimensions.radiusCircle,
+                                  ),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.transparent
+                                        : theme.colorScheme.outline,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _filters[index],
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      color: isSelected
+                                          ? (isDark
+                                              ? AppColors.darkOnPrimary
+                                              : AppColors.lightOnPrimary)
+                                          : theme.textTheme.bodyMedium?.color,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
 
-          // --- Booking List or Empty State ---
-          if (bookings.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _EmptyBookingsView(isDark: isDark, theme: theme),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimensions.xxl,
-                AppDimensions.md,
-                AppDimensions.xxl,
-                120,
-              ),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final booking = bookings[index];
-                    final itemDelay = index / bookings.length;
-                    final animation = CurvedAnimation(
-                      parent: _staggerController,
-                      curve: Interval(
-                        itemDelay * 0.6,
-                        (itemDelay * 0.6 + 0.4).clamp(0.0, 1.0),
-                        curve: Curves.easeOutCubic,
-                      ),
-                    );
+                // --- Booking List or Empty State ---
+                if (bookings.isEmpty && !isLoading)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyBookingsView(isDark: isDark, theme: theme),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimensions.xxl,
+                      AppDimensions.md,
+                      AppDimensions.xxl,
+                      120,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final booking = bookings[index];
+                          final itemDelay = index / bookings.length;
+                          final animation = CurvedAnimation(
+                            parent: _staggerController,
+                            curve: Interval(
+                              itemDelay * 0.6,
+                              (itemDelay * 0.6 + 0.4).clamp(0.0, 1.0),
+                              curve: Curves.easeOutCubic,
+                            ),
+                          );
 
-                    return AnimatedBuilder(
-                      animation: animation,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: animation.value,
-                          child: Transform.translate(
-                            offset: Offset(0, 24 * (1 - animation.value)),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: AppDimensions.md,
-                        ),
-                        child: _BookingCard(
-                          booking: booking,
-                          isDark: isDark,
-                          theme: theme,
-                          onTap: () =>
-                              context.router.push(JobTrackerRoute(booking: booking)),
-                        ),
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, child) {
+                              final opacity = isLoading ? 1.0 : animation.value;
+                              final offset = isLoading ? 0.0 : 24 * (1 - animation.value);
+                              return Opacity(
+                                opacity: opacity,
+                                child: Transform.translate(
+                                  offset: Offset(0, offset),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppDimensions.md,
+                              ),
+                              child: _BookingCard(
+                                booking: booking,
+                                isDark: isDark,
+                                theme: theme,
+                                onTap: () =>
+                                    context.router.push(JobTrackerRoute(booking: booking)),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: bookings.length,
                       ),
-                    );
-                  },
-                  childCount: bookings.length,
-                ),
-              ),
+                    ),
+                  ),
+              ],
             ),
-            ],
           );
         },
       ),

@@ -46,55 +46,59 @@ class MainLayoutScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
             children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: 'Home',
-                isSelected: tabsRouter.activeIndex == 0,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  tabsRouter.setActiveIndex(0);
-                },
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  isSelected: tabsRouter.activeIndex == 0,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    tabsRouter.setActiveIndex(0);
+                  },
+                ),
               ),
-              _NavItem(
-                icon: Icons.calendar_month_rounded,
-                label: 'Bookings',
-                isSelected: tabsRouter.activeIndex == 1,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  tabsRouter.setActiveIndex(1);
-                },
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.calendar_month_rounded,
+                  label: 'Bookings',
+                  isSelected: tabsRouter.activeIndex == 1,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    tabsRouter.setActiveIndex(1);
+                  },
+                ),
               ),
-              _NavItem(
-                icon: Icons.stars_rounded,
-                label: 'Rewards',
-                isSelected: tabsRouter.activeIndex == 2,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  tabsRouter.setActiveIndex(2);
-                },
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.stars_rounded,
+                  label: 'Rewards',
+                  isSelected: tabsRouter.activeIndex == 2,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    tabsRouter.setActiveIndex(2);
+                  },
+                ),
               ),
-              _NavItem(
-                icon: Icons.person_rounded,
-                label: 'Account',
-                isSelected: tabsRouter.activeIndex == 3,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  tabsRouter.setActiveIndex(3);
-                },
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.person_rounded,
+                  label: 'Account',
+                  isSelected: tabsRouter.activeIndex == 3,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    tabsRouter.setActiveIndex(3);
+                  },
+                ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 }
 
 class _NavItem extends StatelessWidget {
@@ -122,12 +126,12 @@ class _NavItem extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
                 ? const Color.fromARGB(26, 255, 255, 255) // white ~0.1
                 : AppColors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -137,9 +141,9 @@ class _NavItem extends StatelessWidget {
                 color: isSelected
                     ? AppColors.white
                     : const Color(0xFF8FA3BF),
-                size: 20,
+                size: 22,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
@@ -147,7 +151,7 @@ class _NavItem extends StatelessWidget {
                       ? AppColors.white
                       : const Color(0xFF8FA3BF),
                   fontWeight: FontWeight.w600,
-                  fontSize: 10,
+                  fontSize: 11,
                 ),
               ),
             ],

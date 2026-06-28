@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'referral_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class ReferredUserModel {
   final int id;
   final String name;
@@ -31,7 +31,7 @@ class ReferredUserModel {
   }
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class ReferralModel {
   final String referralCode;
   final List<ReferredUserModel> referredUsers;
