@@ -34,11 +34,11 @@ class _DriverConvenienceMapScreenState extends State<DriverConvenienceMapScreen>
     try {
       final response = await Injection.httpClient.get(ApiConstants.driverLocation(widget.bookingId!));
       final data = response['data'];
-      if (data != null && data['latitude'] != null && data['longitude'] != null) {
+      if (data != null && data['lat'] != null && data['lng'] != null) {
         setState(() {
           _driverLocation = LatLng(
-            double.parse(data['latitude'].toString()),
-            double.parse(data['longitude'].toString()),
+            double.parse(data['lat'].toString()),
+            double.parse(data['lng'].toString()),
           );
         });
       }

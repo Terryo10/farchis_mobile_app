@@ -25,16 +25,18 @@ class RegisterRequested extends AuthEvent {
   final String email;
   final String password;
   final String phone;
+  final String? referralCode;
 
   const RegisterRequested({
     required this.name,
     required this.email,
     required this.password,
     required this.phone,
+    this.referralCode,
   });
 
   @override
-  List<Object?> get props => [name, email, password, phone];
+  List<Object?> get props => [name, email, password, phone, referralCode];
 }
 
 class GoogleSignInRequested extends AuthEvent {}

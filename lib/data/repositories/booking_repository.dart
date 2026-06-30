@@ -3,7 +3,6 @@ import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/http_client.dart';
 import '../models/booking_model.dart';
-import '../models/available_slot_model.dart';
 
 class BookingRepository {
   final FarchisHttpClient client;
@@ -29,11 +28,11 @@ class BookingRepository {
     }
   }
 
-  Future<Result<List<AvailableSlotModel>>> getAvailableSlots(String date) async {
+  Future<Result<List<String>>> getAvailableSlots(String date) async {
     try {
       final response = await client.get('${ApiConstants.availableSlots}?date=$date');
-      final data = response['data'] as List;
-      return Result.success(data.map((e) => AvailableSlotModel.fromJson(e)).toList());
+      final slots = (response['data']['slots'] as List).cast<String>();
+      return Result.success(slots);
     } catch (e) {
       return _handleError(e);
     }

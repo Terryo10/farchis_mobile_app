@@ -1,6 +1,7 @@
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
@@ -9,7 +10,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/services/services_bloc.dart';
 import '../../../blocs/services/services_state.dart';
 import '../../../blocs/services/services_event.dart';
+import '../../../blocs/booking_create/booking_create_bloc.dart';
+import '../../../blocs/booking_create/booking_create_event.dart';
+import '../../../blocs/booking_create/booking_create_state.dart';
 import '../../../data/models/service_model.dart';
+import '../../../data/repositories/booking_repository.dart';
 
 @RoutePage()
 class CreateBookingScreen extends StatefulWidget {
@@ -24,23 +29,44 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
   int _currentStep = 0;
   int _selectedServiceIndex = -1;
   DateTime? _selectedDate;
-  int _selectedTimeIndex = -1;
+  String? _selectedSlot;
+  List<String> _availableSlots = [];
+  bool _loadingSlots = false;
 
   late final PageController _pageController;
   late final AnimationController _fadeController;
 
   static const _stepLabels = ['Select Service', 'Choose Date', 'Confirm'];
 
-  
+  String _formatSlotLabel(String slot24) {
+    final parsed = DateFormat('HH:mm').parse(slot24);
+    return DateFormat('h:mm a').format(parsed);
+  }
 
-  static const _timeSlots = [
-    '08:00 AM',
-    '09:30 AM',
-    '11:00 AM',
-    '01:00 PM',
-    '02:30 PM',
-    '04:00 PM',
-  ];
+  Future<void> _loadAvailableSlots(DateTime date) async {
+    setState(() {
+      _loadingSlots = true;
+      _selectedSlot = null;
+      _availableSlots = [];
+    });
+
+    final result = await context
+        .read<BookingRepository>()
+        .getAvailableSlots(DateFormat('yyyy-MM-dd').format(date));
+
+    if (!mounted) return;
+
+    result.when(
+      onSuccess: (slots) => setState(() {
+        _availableSlots = slots;
+        _loadingSlots = false;
+      }),
+      onFailure: (_) => setState(() {
+        _availableSlots = [];
+        _loadingSlots = false;
+      }),
+    );
+  }
 
   @override
   void initState() {
@@ -77,7 +103,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
       case 0:
         return _selectedServiceIndex >= 0;
       case 1:
-        return _selectedDate != null && _selectedTimeIndex >= 0;
+        return _selectedDate != null && _selectedSlot != null;
       default:
         return true;
     }
@@ -213,7 +239,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         isSelected: isSelected,
                         isDark: isDark,
                         theme: theme,
-                        onTap: () => setState(() => _selectedServiceIndex = index),
+                        onTap: () {
+                          setState(() => _selectedServiceIndex = index);
+                          context.read<BookingCreateBloc>().add(SelectService(service));
+                        },
                       );
                     },
                   ),
@@ -266,6 +295,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                 );
                 if (date != null) {
                   setState(() => _selectedDate = date);
+                  _loadAvailableSlots(date);
                 }
               },
               child: Container(
@@ -302,65 +332,78 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
               ),
             ),
             const SizedBox(height: AppDimensions.md),
-            Wrap(
-              spacing: AppDimensions.sm,
-              runSpacing: AppDimensions.sm,
-              children: List.generate(_timeSlots.length, (index) {
-                final isSelected = _selectedTimeIndex == index;
-                // Make some slots unavailable
-                final isAvailable = index != 2 && index != 4;
-                return GestureDetector(
-                  onTap: isAvailable
-                      ? () => setState(() => _selectedTimeIndex = index)
-                      : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.lg,
-                      vertical: AppDimensions.md,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isDark
-                              ? AppColors.darkPrimary
-                              : AppColors.lightPrimary)
-                          : isAvailable
-                              ? (isDark
-                                  ? AppColors.navyDark
-                                  : AppColors.lightSurface)
-                              : (isDark
-                                  ? AppColors.navyDarkest
-                                  : AppColors.silverLight),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusMd),
-                      border: Border.all(
-                        color: isSelected
-                            ? Colors.transparent
-                            : isAvailable
-                                ? theme.colorScheme.outline
-                                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            if (_selectedDate == null)
+              Text(
+                'Select a date to see available slots',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+              )
+            else if (_loadingSlots)
+              const Center(child: CircularProgressIndicator())
+            else if (_availableSlots.isEmpty)
+              Text(
+                'No slots available for this date',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+              )
+            else
+              Wrap(
+                spacing: AppDimensions.sm,
+                runSpacing: AppDimensions.sm,
+                children: _availableSlots.map((slot) {
+                  final isSelected = _selectedSlot == slot;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedSlot = slot);
+                      context.read<BookingCreateBloc>().add(
+                            SelectDate(date: _selectedDate!, slot: slot),
+                          );
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.lg,
+                        vertical: AppDimensions.md,
                       ),
-                    ),
-                    child: Text(
-                      _timeSlots[index],
-                      style: theme.textTheme.labelMedium?.copyWith(
+                      decoration: BoxDecoration(
                         color: isSelected
                             ? (isDark
-                                ? AppColors.darkOnPrimary
-                                : AppColors.lightOnPrimary)
-                            : isAvailable
-                                ? theme.colorScheme.onSurface
-                                : theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.3),
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                                ? AppColors.darkPrimary
+                                : AppColors.lightPrimary)
+                            : (isDark
+                                ? AppColors.navyDark
+                                : AppColors.lightSurface),
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusMd),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.transparent
+                              : theme.colorScheme.outline,
+                        ),
+                      ),
+                      child: Text(
+                        _formatSlotLabel(slot),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: isSelected
+                              ? (isDark
+                                  ? AppColors.darkOnPrimary
+                                  : AppColors.lightOnPrimary)
+                              : theme.colorScheme.onSurface,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }),
-            ),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),
@@ -373,8 +416,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     final date = _selectedDate != null
         ? '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}'
         : 'Not selected';
-    final time = _selectedTimeIndex >= 0
-        ? _timeSlots[_selectedTimeIndex]
+    final time = _selectedSlot != null
+        ? _formatSlotLabel(_selectedSlot!)
         : 'Not selected';
 
     return FadeTransition(
@@ -556,23 +599,43 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
           Expanded(
             flex: _currentStep > 0 ? 2 : 1,
             child: _currentStep == 2
-                ? FarchisButton(
-                    label: 'Confirm Booking',
-                    size: ButtonSize.large,
-                    width: double.infinity,
-                    icon: const Icon(Icons.check_circle_outline_rounded,
-                        size: 20, color: Colors.white),
-                    isEnabled: _canProceed,
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Booking confirmed! 🎉'),
-                          backgroundColor: isDark
-                              ? AppColors.darkSuccess
-                              : AppColors.lightSuccess,
-                        ),
+                ? BlocConsumer<BookingCreateBloc, BookingCreateState>(
+                    listener: (context, state) {
+                      if (state is BookingSuccess) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Booking confirmed! 🎉'),
+                            backgroundColor: isDark
+                                ? AppColors.darkSuccess
+                                : AppColors.lightSuccess,
+                          ),
+                        );
+                        context.router.maybePop();
+                      } else if (state is BookingFailure) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(state.failure.message),
+                            backgroundColor: isDark
+                                ? AppColors.darkError
+                                : AppColors.lightError,
+                          ),
+                        );
+                      }
+                    },
+                    builder: (context, state) {
+                      final isSubmitting = state is BookingSubmitting;
+                      return FarchisButton(
+                        label: 'Confirm Booking',
+                        size: ButtonSize.large,
+                        width: double.infinity,
+                        icon: const Icon(Icons.check_circle_outline_rounded,
+                            size: 20, color: Colors.white),
+                        isEnabled: _canProceed,
+                        isLoading: isSubmitting,
+                        onPressed: () => context
+                            .read<BookingCreateBloc>()
+                            .add(SubmitBooking()),
                       );
-                      context.router.maybePop();
                     },
                   )
                 : FarchisButton(

@@ -16,7 +16,6 @@ class AppConstants {
   static const int loyaltyPointsPerBooking = 100;
   static const int loyaltyTierSilverThreshold = 1000;
   static const int loyaltyTierGoldThreshold = 5000;
-  static const int loyaltyTierPlatinumThreshold = 10000;
 
   // Booking Status
   static const String bookingStatusPending = 'pending';
@@ -38,6 +37,7 @@ class AppConstants {
   // Payment Methods
   static const String paymentMethodStripe = 'stripe';
   static const String paymentMethodEcocash = 'ecocash';
+  static const String paymentMethodPaypal = 'paypal';
 
   // Service Categories
   static const String serviceCategoryMaintenance = 'maintenance';

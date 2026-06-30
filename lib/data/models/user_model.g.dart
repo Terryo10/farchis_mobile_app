@@ -44,5 +44,4 @@ const _$LoyaltyTierEnumMap = {
   LoyaltyTier.bronze: 'bronze',
   LoyaltyTier.silver: 'silver',
   LoyaltyTier.gold: 'gold',
-  LoyaltyTier.platinum: 'platinum',
 };

@@ -23,11 +23,24 @@ class AuthRepository {
     }
   }
 
-  Future<Result<UserModel>> register(String name, String email, String password, String phone) async {
+  Future<Result<UserModel>> register(
+    String name,
+    String email,
+    String password,
+    String phone, {
+    String? referralCode,
+  }) async {
     try {
       final response = await client.post(
         ApiConstants.authRegister,
-        body: {'name': name, 'email': email, 'password': password, 'phone': phone},
+        body: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': password,
+          'phone': phone,
+          'referral_code': ?referralCode,
+        },
       );
       final token = response['data']['token'] as String;
       await client.secureStorage.write(key: 'auth_token', value: token);

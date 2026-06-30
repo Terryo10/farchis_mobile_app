@@ -25,6 +25,8 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _referralCodeController = TextEditingController();
   bool _agreedToTerms = false;
 
   late final AnimationController _controller;
@@ -89,6 +91,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _referralCodeController.dispose();
     super.dispose();
   }
 
@@ -113,6 +117,9 @@ class _RegisterScreenState extends State<RegisterScreen>
           email: _emailController.text,
           phone: _phoneController.text,
           password: _passwordController.text,
+          referralCode: _referralCodeController.text.trim().isEmpty
+              ? null
+              : _referralCodeController.text.trim(),
         ),
       );
     }
@@ -385,7 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   label: 'Password',
                                   hint: 'Enter your password',
                                   obscureText: true,
-                                  textInputAction: TextInputAction.done,
+                                  textInputAction: TextInputAction.next,
                                   prefixIcon: const Icon(
                                     Icons.lock_outline_rounded,
                                     size: AppDimensions.iconSm,
@@ -394,11 +401,56 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter a password';
                                     }
-                                    if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
+                                    if (value.length < 8) {
+                                      return 'Password must be at least 8 characters';
                                     }
                                     return null;
                                   },
+                                ),
+                              ),
+
+                              const SizedBox(height: AppDimensions.lg),
+
+                              // Confirm Password
+                              FadeTransition(
+                                opacity: _field3Opacity,
+                                child: FarchisTextField(
+                                  controller: _confirmPasswordController,
+                                  label: 'Confirm Password',
+                                  hint: 'Re-enter your password',
+                                  obscureText: true,
+                                  textInputAction: TextInputAction.next,
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: AppDimensions.iconSm,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please confirm your password';
+                                    }
+                                    if (value != _passwordController.text) {
+                                      return 'Passwords do not match';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+
+                              const SizedBox(height: AppDimensions.lg),
+
+                              // Referral Code (optional)
+                              FadeTransition(
+                                opacity: _field3Opacity,
+                                child: FarchisTextField(
+                                  controller: _referralCodeController,
+                                  label: 'Referral Code (optional)',
+                                  hint: 'Enter a referral code',
+                                  textCapitalization: TextCapitalization.characters,
+                                  textInputAction: TextInputAction.done,
+                                  prefixIcon: const Icon(
+                                    Icons.card_giftcard_outlined,
+                                    size: AppDimensions.iconSm,
+                                  ),
                                 ),
                               ),
                             ],

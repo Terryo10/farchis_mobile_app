@@ -8,13 +8,21 @@ class PaymentRepository {
 
   PaymentRepository(this.client);
 
+  /// [method] is the user-facing payment method: 'stripe', 'ecocash', or 'paypal'.
+  /// EcoCash is routed through the 'paynow' gateway server-side.
   Future<Result<String>> initiatePayment(int bookingId, String method, String phone) async {
     try {
-      final response = await client.post(
-        ApiConstants.initiatePayment,
-        body: {'booking_id': bookingId, 'method': method, 'phone': phone},
+      final gateway = method == 'ecocash' ? 'paynow' : method;
+      final body = <String, dynamic>{'booking_id': bookingId, 'gateway': gateway};
+      if (method == 'ecocash') {
+        body['method'] = 'ecocash';
+        body['phone'] = phone;
+      }
+
+      final response = await client.post(ApiConstants.initiatePayment, body: body);
+      return Result.success(
+        response['data']['redirect_url'] ?? response['data']['browserurl'] ?? response['message'],
       );
-      return Result.success(response['data']['payment_url'] ?? response['message']);
     } catch (e) {
       return _handleError(e);
     }

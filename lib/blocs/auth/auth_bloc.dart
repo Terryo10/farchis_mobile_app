@@ -62,6 +62,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       event.email,
       event.password,
       event.phone,
+      referralCode: event.referralCode,
     );
     result.when(
       onSuccess: (user) => emit(Authenticated(user)),

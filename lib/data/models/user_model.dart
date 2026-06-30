@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 part 'user_model.g.dart';
 
 @JsonEnum(fieldRename: FieldRename.snake)
-enum LoyaltyTier { bronze, silver, gold, platinum }
+enum LoyaltyTier { bronze, silver, gold }
 
 @JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class UserModel {

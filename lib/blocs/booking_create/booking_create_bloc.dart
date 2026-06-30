@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../data/repositories/booking_repository.dart';
 import 'booking_create_event.dart';
 import 'booking_create_state.dart';
@@ -40,8 +41,10 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
 
       final payload = {
         'service_id': state.selectedService?.id,
-        'date': state.selectedDate?.toIso8601String(),
-        'time': state.selectedSlot,
+        'booking_date': state.selectedDate != null
+            ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
+            : null,
+        'booking_time': state.selectedSlot,
         'notes': state.notes,
         'photos': state.photos,
       };
