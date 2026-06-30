@@ -2,11 +2,13 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'gallery_item_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class GalleryItemModel {
   final int id;
   final int bookingId;
+  @JsonKey(name: 'before_image')
   final String beforeImageUrl;
+  @JsonKey(name: 'after_image')
   final String afterImageUrl;
   final String? caption;
   final bool isPublic;
@@ -41,4 +43,16 @@ class GalleryItemModel {
       isPublic: isPublic ?? this.isPublic,
     );
   }
+
+  factory GalleryItemModel.placeholder() => const GalleryItemModel(
+        id: 0,
+        bookingId: 0,
+        beforeImageUrl: '',
+        afterImageUrl: '',
+        caption: 'Loading gallery item...',
+        isPublic: true,
+      );
+
+  static List<GalleryItemModel> placeholderList(int count) =>
+      List.generate(count, (index) => GalleryItemModel.placeholder().copyWith(id: index));
 }

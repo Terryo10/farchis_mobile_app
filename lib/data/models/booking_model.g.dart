@@ -8,45 +8,45 @@ part of 'booking_model.dart';
 
 BookingModel _$BookingModelFromJson(Map<String, dynamic> json) => BookingModel(
   id: (json['id'] as num).toInt(),
-  userId: (json['userId'] as num).toInt(),
+  userId: (json['user_id'] as num).toInt(),
   service: ServiceModel.fromJson(json['service'] as Map<String, dynamic>),
-  bookingDate: DateTime.parse(json['bookingDate'] as String),
-  bookingTime: json['bookingTime'] as String,
+  bookingDate: DateTime.parse(json['booking_date'] as String),
+  bookingTime: json['booking_time'] as String,
   status: $enumDecode(_$BookingStatusEnumMap, json['status']),
   notes: json['notes'] as String?,
   damagePhotos:
-      (json['damagePhotos'] as List<dynamic>?)
+      (json['damage_photos'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  totalAmount: (json['totalAmount'] as num).toDouble(),
-  paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['paymentStatus']),
-  paymentReference: json['paymentReference'] as String?,
-  invoiceUrl: json['invoiceUrl'] as String?,
-  adminNotes: json['adminNotes'] as String?,
-  createdAt: DateTime.parse(json['createdAt'] as String),
-  scratchCard: json['scratchCard'] == null
+  totalAmount: (json['total_amount'] as num).toDouble(),
+  paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['payment_status']),
+  paymentReference: json['payment_reference'] as String?,
+  invoiceUrl: json['invoice_url'] as String?,
+  adminNotes: json['admin_notes'] as String?,
+  createdAt: DateTime.parse(json['created_at'] as String),
+  scratchCard: json['scratch_card'] == null
       ? null
-      : ScratchCardModel.fromJson(json['scratchCard'] as Map<String, dynamic>),
+      : ScratchCardModel.fromJson(json['scratch_card'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$BookingModelToJson(BookingModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'userId': instance.userId,
+      'user_id': instance.userId,
       'service': instance.service.toJson(),
-      'bookingDate': instance.bookingDate.toIso8601String(),
-      'bookingTime': instance.bookingTime,
+      'booking_date': instance.bookingDate.toIso8601String(),
+      'booking_time': instance.bookingTime,
       'status': _$BookingStatusEnumMap[instance.status]!,
       'notes': instance.notes,
-      'damagePhotos': instance.damagePhotos,
-      'totalAmount': instance.totalAmount,
-      'paymentStatus': _$PaymentStatusEnumMap[instance.paymentStatus]!,
-      'paymentReference': instance.paymentReference,
-      'invoiceUrl': instance.invoiceUrl,
-      'adminNotes': instance.adminNotes,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'scratchCard': instance.scratchCard?.toJson(),
+      'damage_photos': instance.damagePhotos,
+      'total_amount': instance.totalAmount,
+      'payment_status': _$PaymentStatusEnumMap[instance.paymentStatus]!,
+      'payment_reference': instance.paymentReference,
+      'invoice_url': instance.invoiceUrl,
+      'admin_notes': instance.adminNotes,
+      'created_at': instance.createdAt.toIso8601String(),
+      'scratch_card': instance.scratchCard?.toJson(),
     };
 
 const _$BookingStatusEnumMap = {

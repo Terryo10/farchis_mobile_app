@@ -4,9 +4,11 @@ import 'user_model.dart';
 
 part 'loyalty_wallet_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class LoyaltyWalletModel {
+  @JsonKey(name: 'loyalty_points')
   final int balance;
+  @JsonKey(name: 'loyalty_tier')
   final LoyaltyTier tier;
   final List<LoyaltyTransactionModel> transactions;
 
@@ -31,4 +33,10 @@ class LoyaltyWalletModel {
       transactions: transactions ?? this.transactions,
     );
   }
+
+  factory LoyaltyWalletModel.placeholder() => const LoyaltyWalletModel(
+        balance: 1000,
+        tier: LoyaltyTier.gold,
+        transactions: [],
+      );
 }

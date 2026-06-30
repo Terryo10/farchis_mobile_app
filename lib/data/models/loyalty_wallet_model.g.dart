@@ -8,8 +8,8 @@ part of 'loyalty_wallet_model.dart';
 
 LoyaltyWalletModel _$LoyaltyWalletModelFromJson(Map<String, dynamic> json) =>
     LoyaltyWalletModel(
-      balance: (json['balance'] as num).toInt(),
-      tier: $enumDecode(_$LoyaltyTierEnumMap, json['tier']),
+      balance: (json['loyalty_points'] as num).toInt(),
+      tier: $enumDecode(_$LoyaltyTierEnumMap, json['loyalty_tier']),
       transactions: (json['transactions'] as List<dynamic>)
           .map(
             (e) => LoyaltyTransactionModel.fromJson(e as Map<String, dynamic>),
@@ -19,8 +19,8 @@ LoyaltyWalletModel _$LoyaltyWalletModelFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$LoyaltyWalletModelToJson(LoyaltyWalletModel instance) =>
     <String, dynamic>{
-      'balance': instance.balance,
-      'tier': _$LoyaltyTierEnumMap[instance.tier]!,
+      'loyalty_points': instance.balance,
+      'loyalty_tier': _$LoyaltyTierEnumMap[instance.tier]!,
       'transactions': instance.transactions.map((e) => e.toJson()).toList(),
     };
 

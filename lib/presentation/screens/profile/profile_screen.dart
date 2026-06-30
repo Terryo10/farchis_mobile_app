@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
 import '../../router/app_router.dart';
+import '../../../data/repositories/vehicle_repository.dart';
 
 @RoutePage()
 class ProfileScreen extends StatefulWidget {
@@ -584,6 +585,20 @@ class _VehicleManagementFormState extends State<_VehicleManagementForm> {
   final _modelController = TextEditingController();
   final _yearController = TextEditingController();
   final _plateController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      final user = authState.user;
+      _makeController.text = user.vehicleMake ?? '';
+      _modelController.text = user.vehicleModel ?? '';
+      _yearController.text = user.vehicleYear?.toString() ?? '';
+      _plateController.text = user.vehiclePlate ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -592,6 +607,63 @@ class _VehicleManagementFormState extends State<_VehicleManagementForm> {
     _yearController.dispose();
     _plateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveVehicle() async {
+    final make = _makeController.text.trim();
+    final model = _modelController.text.trim();
+    final yearStr = _yearController.text.trim();
+    final plate = _plateController.text.trim();
+
+    if (make.isEmpty || model.isEmpty || yearStr.isEmpty || plate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    final year = int.tryParse(yearStr);
+    if (year == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid year')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final payload = {
+      'vehicle_make': make,
+      'vehicle_model': model,
+      'vehicle_year': year,
+      'vehicle_plate': plate,
+    };
+
+    final repository = context.read<VehicleRepository>();
+    final result = await repository.updateVehicle(payload);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      result.when(
+        onSuccess: (updatedUser) {
+          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vehicle details saved successfully')),
+          );
+          Navigator.pop(context);
+        },
+        onFailure: (failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -634,9 +706,8 @@ class _VehicleManagementFormState extends State<_VehicleManagementForm> {
             width: double.infinity,
             child: FarchisButton(
               label: 'Save Vehicle',
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              isLoading: _isLoading,
+              onPressed: _saveVehicle,
             ),
           ),
           const SizedBox(height: AppDimensions.xl),

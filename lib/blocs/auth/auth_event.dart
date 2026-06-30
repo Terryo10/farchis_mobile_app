@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../data/models/user_model.dart';
 
 sealed class AuthEvent extends Equatable {
   const AuthEvent();
@@ -47,3 +48,11 @@ class UpdateFcmTokenEvent extends AuthEvent {
 }
 
 class LogoutRequested extends AuthEvent {}
+
+class AuthUserUpdated extends AuthEvent {
+  final UserModel user;
+  const AuthUserUpdated(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}

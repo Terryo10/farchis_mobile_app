@@ -24,6 +24,10 @@ import '../../blocs/maps/maps_bloc.dart';
 import '../../blocs/services/services_bloc.dart';
 import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/promotion/promotion_bloc.dart';
+import '../../blocs/gallery/gallery_bloc.dart';
+import '../../blocs/scratch_card/scratch_card_bloc.dart';
+import '../../blocs/referral/referral_bloc.dart';
+import '../../blocs/notification/notification_bloc.dart';
 
 class Injection {
   Injection._();
@@ -56,6 +60,10 @@ class Injection {
   static late final ServicesBloc _servicesBloc;
   static late final ThemeCubit _themeCubit;
   static late final PromotionBloc _promotionBloc;
+  static late final GalleryBloc _galleryBloc;
+  static late final ScratchCardBloc _scratchCardBloc;
+  static late final ReferralBloc _referralBloc;
+  static late final NotificationBloc _notificationBloc;
 
   static Future<void> init() async {
     secureStorage = const FlutterSecureStorage();
@@ -86,6 +94,10 @@ class Injection {
     _servicesBloc = ServicesBloc(serviceRepository: serviceRepository);
     _themeCubit = ThemeCubit(sharedPreferences);
     _promotionBloc = PromotionBloc(promotionRepository: promotionRepository);
+    _galleryBloc = GalleryBloc(galleryRepository: galleryRepository);
+    _scratchCardBloc = ScratchCardBloc(scratchCardRepository: scratchCardRepository);
+    _referralBloc = ReferralBloc(referralRepository: referralRepository);
+    _notificationBloc = NotificationBloc(notificationRepository: notificationRepository);
   }
 
   static AuthBloc get authBloc => _authBloc;
@@ -96,4 +108,8 @@ class Injection {
   static ServicesBloc get servicesBloc => _servicesBloc;
   static ThemeCubit get themeCubit => _themeCubit;
   static PromotionBloc get promotionBloc => _promotionBloc;
+  static GalleryBloc get galleryBloc => _galleryBloc;
+  static ScratchCardBloc get scratchCardBloc => _scratchCardBloc;
+  static ReferralBloc get referralBloc => _referralBloc;
+  static NotificationBloc get notificationBloc => _notificationBloc;
 }

@@ -15,6 +15,8 @@ class AuthRepository {
         ApiConstants.authLogin,
         body: {'email': email, 'password': password},
       );
+      final token = response['data']['token'] as String;
+      await client.secureStorage.write(key: 'auth_token', value: token);
       return Result.success(UserModel.fromJson(response['data']['user']));
     } catch (e) {
       return _handleError(e);
@@ -27,6 +29,8 @@ class AuthRepository {
         ApiConstants.authRegister,
         body: {'name': name, 'email': email, 'password': password, 'phone': phone},
       );
+      final token = response['data']['token'] as String;
+      await client.secureStorage.write(key: 'auth_token', value: token);
       return Result.success(UserModel.fromJson(response['data']['user']));
     } catch (e) {
       return _handleError(e);
@@ -39,6 +43,8 @@ class AuthRepository {
         ApiConstants.authGoogle,
         body: {'id_token': idToken},
       );
+      final token = response['data']['token'] as String;
+      await client.secureStorage.write(key: 'auth_token', value: token);
       return Result.success(UserModel.fromJson(response['data']['user']));
     } catch (e) {
       return _handleError(e);

@@ -13,7 +13,7 @@ LoyaltyTransactionModel _$LoyaltyTransactionModelFromJson(
   points: (json['points'] as num).toInt(),
   type: $enumDecode(_$LoyaltyTransactionTypeEnumMap, json['type']),
   description: json['description'] as String,
-  createdAt: DateTime.parse(json['createdAt'] as String),
+  createdAt: DateTime.parse(json['created_at'] as String),
 );
 
 Map<String, dynamic> _$LoyaltyTransactionModelToJson(
@@ -23,7 +23,7 @@ Map<String, dynamic> _$LoyaltyTransactionModelToJson(
   'points': instance.points,
   'type': _$LoyaltyTransactionTypeEnumMap[instance.type]!,
   'description': instance.description,
-  'createdAt': instance.createdAt.toIso8601String(),
+  'created_at': instance.createdAt.toIso8601String(),
 };
 
 const _$LoyaltyTransactionTypeEnumMap = {

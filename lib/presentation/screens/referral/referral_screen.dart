@@ -1,8 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
+import '../../../blocs/referral/referral_bloc.dart';
+import '../../../blocs/referral/referral_event.dart';
+import '../../../blocs/referral/referral_state.dart';
+import '../../../data/models/referral_model.dart';
+import '../../../data/models/leaderboard_entry_model.dart';
 
 @RoutePage()
 class ReferralScreen extends StatefulWidget {
@@ -39,6 +47,10 @@ class _ReferralScreenState extends State<ReferralScreen>
       curve: Curves.easeOutCubic,
     ));
     _animController.forward();
+
+    // Fetch stats and leaderboard
+    context.read<ReferralBloc>().add(const GetReferralStatsEvent());
+    context.read<ReferralBloc>().add(const GetReferralLeaderboardEvent());
   }
 
   @override
@@ -47,10 +59,8 @@ class _ReferralScreenState extends State<ReferralScreen>
     super.dispose();
   }
 
-  void _copyCode() {
-    Clipboard.setData(
-      const ClipboardData(text: 'FARCHIS-JOHN2024'),
-    );
+  void _copyCode(String code) {
+    Clipboard.setData(ClipboardData(text: code));
     setState(() => _copied = true);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -70,60 +80,82 @@ class _ReferralScreenState extends State<ReferralScreen>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            _buildHeader(context, theme, isDark),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.lg,
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppDimensions.xxxl),
+      body: BlocBuilder<ReferralBloc, ReferralState>(
+        builder: (context, state) {
+          final stats = state.stats;
+          final referralCode = stats?.referralCode ?? 'LOADING...';
+          final link = stats != null ? 'Join Farchis using my link: ${stats.referralCode}' : '';
 
-                      // Illustration
-                      _buildIllustration(context, theme, isDark),
-
-                      const SizedBox(height: AppDimensions.xxl),
-
-                      // Explanation text
-                      Text(
-                        'Share your referral code and earn 500 points for each friend who books their first service!',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.6,
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<ReferralBloc>().add(const GetReferralStatsEvent());
+              context.read<ReferralBloc>().add(const GetReferralLeaderboardEvent());
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildHeader(context, theme, isDark),
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimensions.lg,
                         ),
-                        textAlign: TextAlign.center,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // Illustration
+                            _buildIllustration(context, theme, isDark),
+
+                            const SizedBox(height: AppDimensions.xxl),
+
+                            // Explanation text
+                            Text(
+                              'Share your referral code and earn 500 points for each friend who books their first service!',
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                height: 1.6,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // Referral code card
+                            _buildReferralCodeCard(context, theme, isDark, referralCode),
+
+                            const SizedBox(height: AppDimensions.xxl),
+
+                            // Share buttons
+                            _buildShareButtons(context, theme, isDark, link),
+
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // Stats section
+                            if (stats != null)
+                              _buildStatsSection(context, theme, isDark, stats)
+                            else
+                              const CircularProgressIndicator(),
+
+                            const SizedBox(height: AppDimensions.xxxl),
+
+                            // Leaderboard section
+                            _buildLeaderboardSection(context, theme, isDark, state.leaderboard),
+
+                            const SizedBox(height: 120),
+                          ],
+                        ),
                       ),
-
-                      const SizedBox(height: AppDimensions.xxxl),
-
-                      // Referral code card
-                      _buildReferralCodeCard(context, theme, isDark),
-
-                      const SizedBox(height: AppDimensions.xxl),
-
-                      // Share buttons
-                      _buildShareButtons(context, theme, isDark),
-
-                      const SizedBox(height: AppDimensions.xxxl),
-
-                      // Stats section
-                      _buildStatsSection(context, theme, isDark),
-
-                      const SizedBox(height: 120),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -235,6 +267,7 @@ class _ReferralScreenState extends State<ReferralScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    String referralCode,
   ) {
     return Container(
       width: double.infinity,
@@ -290,7 +323,7 @@ class _ReferralScreenState extends State<ReferralScreen>
               children: [
                 Expanded(
                   child: Text(
-                    'FARCHIS-JOHN2024',
+                    referralCode,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       letterSpacing: 2,
                       fontWeight: FontWeight.w800,
@@ -304,7 +337,7 @@ class _ReferralScreenState extends State<ReferralScreen>
                   duration: const Duration(milliseconds: 200),
                   child: IconButton(
                     key: ValueKey(_copied),
-                    onPressed: _copyCode,
+                    onPressed: () => _copyCode(referralCode),
                     icon: Icon(
                       _copied
                           ? Icons.check_circle_rounded
@@ -332,6 +365,7 @@ class _ReferralScreenState extends State<ReferralScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    String link,
   ) {
     final shareOptions = [
       _ShareOption(
@@ -376,11 +410,12 @@ class _ReferralScreenState extends State<ReferralScreen>
           },
           child: GestureDetector(
             onTap: () {
+              Clipboard.setData(ClipboardData(text: link));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Share via ${option.label}'),
+                  content: Text('Referral link copied to share via ${option.label}!'),
                   behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 1),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
@@ -421,25 +456,22 @@ class _ReferralScreenState extends State<ReferralScreen>
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    ReferralModel stats,
   ) {
-    final stats = [
+    final pointsEarned = stats.totalReferrals * 500; // Mock calculation matching explanation
+
+    final items = [
       _StatItem(
         label: 'Total Referrals',
-        value: '5',
+        value: stats.totalReferrals.toString(),
         icon: Icons.people_outline_rounded,
         color: isDark ? AppColors.darkInfo : AppColors.lightInfo,
       ),
       _StatItem(
         label: 'Points Earned',
-        value: '2,500',
+        value: pointsEarned.toString(),
         icon: Icons.stars_rounded,
         color: AppColors.tierGold,
-      ),
-      _StatItem(
-        label: 'Pending',
-        value: '2',
-        icon: Icons.hourglass_top_rounded,
-        color: isDark ? AppColors.darkWarning : AppColors.lightWarning,
       ),
     ];
 
@@ -452,7 +484,7 @@ class _ReferralScreenState extends State<ReferralScreen>
         ),
         const SizedBox(height: AppDimensions.md),
         Row(
-          children: stats.asMap().entries.map((entry) {
+          children: items.asMap().entries.map((entry) {
             final index = entry.key;
             final stat = entry.value;
             return Expanded(
@@ -462,8 +494,7 @@ class _ReferralScreenState extends State<ReferralScreen>
                 ),
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.0, end: 1.0),
-                  duration:
-                      Duration(milliseconds: 500 + (index * 100)),
+                  duration: Duration(milliseconds: 500 + (index * 100)),
                   curve: Curves.easeOutCubic,
                   builder: (context, value, child) {
                     return Opacity(
@@ -482,14 +513,11 @@ class _ReferralScreenState extends State<ReferralScreen>
                         AppDimensions.radiusLg,
                       ),
                       border: Border.all(
-                        color: theme.colorScheme.outline
-                            .withValues(alpha: 0.15),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.15),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (isDark
-                                  ? AppColors.black
-                                  : AppColors.navyDarkest)
+                          color: (isDark ? AppColors.black : AppColors.navyDarkest)
                               .withValues(alpha: 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
@@ -506,8 +534,7 @@ class _ReferralScreenState extends State<ReferralScreen>
                         const SizedBox(height: AppDimensions.sm),
                         Text(
                           stat.value,
-                          style:
-                              theme.textTheme.headlineMedium?.copyWith(
+                          style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -528,6 +555,93 @@ class _ReferralScreenState extends State<ReferralScreen>
               ),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLeaderboardSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    List<LeaderboardEntryModel>? leaderboard,
+  ) {
+    if (leaderboard == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Top Referrers Leaderboard',
+          style: theme.textTheme.headlineSmall,
+        ),
+        const SizedBox(height: AppDimensions.md),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.15),
+            ),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: leaderboard.length,
+            separatorBuilder: (context, index) => Divider(
+              color: theme.dividerColor.withValues(alpha: 0.4),
+              height: 1,
+            ),
+            itemBuilder: (context, index) {
+              final entry = leaderboard[index];
+              final authState = context.read<AuthBloc>().state;
+              final isMe = authState is Authenticated && authState.user.name == entry.name;
+
+              // Rank decorations
+              Widget rankWidget;
+              if (entry.rank == 1) {
+                rankWidget = const Icon(Icons.emoji_events_rounded, color: AppColors.tierGold);
+              } else if (entry.rank == 2) {
+                rankWidget = const Icon(Icons.emoji_events_rounded, color: AppColors.silverDark);
+              } else if (entry.rank == 3) {
+                rankWidget = const Icon(Icons.emoji_events_rounded, color: Color(0xFFCD7F32));
+              } else {
+                rankWidget = CircleAvatar(
+                  radius: 12,
+                  backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.1),
+                  child: Text(
+                    entry.rank.toString(),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }
+
+              return ListTile(
+                leading: SizedBox(
+                  width: 40,
+                  child: Center(child: rankWidget),
+                ),
+                title: Text(
+                  isMe ? '${entry.name} (You)' : entry.name,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: isMe ? FontWeight.w800 : FontWeight.w600,
+                    color: isMe ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                  ),
+                ),
+                trailing: Text(
+                  '${entry.referralCount} referrals',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
