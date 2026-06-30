@@ -73,4 +73,15 @@ class UserModel {
       lastServiceDate: lastServiceDate ?? this.lastServiceDate,
     );
   }
+
+  String? get fullAvatarUrl {
+    if (avatarUrl == null || avatarUrl!.isEmpty) return null;
+    if (avatarUrl!.startsWith('http://') || avatarUrl!.startsWith('https://')) {
+      return avatarUrl;
+    }
+    if (avatarUrl!.startsWith('/')) {
+      return 'https://farchis.com$avatarUrl';
+    }
+    return 'https://farchis.com/$avatarUrl';
+  }
 }

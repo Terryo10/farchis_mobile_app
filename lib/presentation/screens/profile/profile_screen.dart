@@ -11,6 +11,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
 import '../../router/app_router.dart';
 import '../../../data/repositories/vehicle_repository.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 @RoutePage()
 class ProfileScreen extends StatefulWidget {
@@ -59,10 +60,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     final isDark = theme.brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        body: SingleChildScrollView(
+    return Scaffold(
+      // extendBodyBehindAppBar false (default) so the Scaffold does not render
+      // its own top inset — the header's SafeArea handles it.
+      // This prevents the status-bar from rendering twice on top of the
+      // AutoTabsRouter parent Scaffold which already owns the system overlay.
+      body: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
@@ -90,23 +93,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _SettingsItem(
                             icon: Icons.person_outline_rounded,
                             label: 'Personal Info',
-                            onTap: () {},
+                            onTap: () => context.router.push(const PersonalInfoRoute()),
                           ),
                           _SettingsItem(
                             icon: Icons.directions_car_outlined,
                             label: 'My Vehicles',
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (context) => const _VehicleManagementForm(),
-                              );
-                            },
+                            onTap: () => context.router.push(const MyVehiclesRoute()),
                           ),
                           _SettingsItem(
                             icon: Icons.payment_rounded,
                             label: 'Payment Methods',
-                            onTap: () {},
+                            onTap: () => context.router.push(const PaymentMethodsRoute()),
                           ),
                         ]),
 
@@ -119,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _SettingsItem(
                             icon: Icons.notifications_outlined,
                             label: 'Notifications',
-                            onTap: () {},
+                            onTap: () => context.router.push(const NotificationsRoute()),
                           ),
                           _SettingsItem(
                             icon: Icons.dark_mode_outlined,
@@ -136,24 +133,15 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: AppDimensions.xxl),
 
-                        // Support section
+                        // Support section — Rate Us & Privacy Policy moved
+                        // inside HelpSupportScreen to keep nav depth flat.
                         _buildSectionHeader(context, 'Support'),
                         const SizedBox(height: AppDimensions.sm),
                         _buildSettingsGroup(context, theme, isDark, [
                           _SettingsItem(
                             icon: Icons.help_outline_rounded,
-                            label: 'Help Center',
-                            onTap: () {},
-                          ),
-                          _SettingsItem(
-                            icon: Icons.star_outline_rounded,
-                            label: 'Rate Us',
-                            onTap: () {},
-                          ),
-                          _SettingsItem(
-                            icon: Icons.shield_outlined,
-                            label: 'Privacy Policy',
-                            onTap: () {},
+                            label: 'Help & Support',
+                            onTap: () => context.router.push(const HelpSupportRoute()),
                           ),
                         ]),
 
@@ -197,8 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildHeader(
@@ -207,200 +194,227 @@ class _ProfileScreenState extends State<ProfileScreen>
     bool isDark,
     MediaQueryData mediaQuery,
   ) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [
-                  AppColors.navyDark,
-                  AppColors.navyDarkest,
-                ]
-              : [
-                  AppColors.navyPrimary,
-                  AppColors.navyDark,
-                ],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.only(
-            top: AppDimensions.xl,
-            bottom: AppDimensions.xxxl,
-          ),
-          child: Column(
-            children: [
-              // Title row
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.lg,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Profile',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: AppColors.silverDark,
-                      ),
-                      tooltip: 'Settings',
-                    ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    AppColors.navyDark,
+                    AppColors.navyDarkest,
+                  ]
+                : [
+                    AppColors.navyPrimary,
+                    AppColors.navyDark,
                   ],
-                ),
-              ),
-
-              const SizedBox(height: AppDimensions.xxl),
-
-              // Avatar
-              Container(
-                width: AppDimensions.avatarXlarge,
-                height: AppDimensions.avatarXlarge,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.navyLight,
-                      AppColors.navyPrimary.withValues(alpha: 0.8),
+          ),
+        ),
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: AppDimensions.xl,
+              bottom: AppDimensions.xxxl,
+            ),
+            child: Column(
+              children: [
+                // Title row
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.lg,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Profile',
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          color: AppColors.white,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: AppColors.silverDark,
+                        ),
+                        tooltip: 'Settings',
+                      ),
                     ],
                   ),
-                  border: Border.all(
-                    color: AppColors.tierGold.withValues(alpha: 0.6),
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
                 ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  size: AppDimensions.iconXl,
-                  color: AppColors.silverLight,
-                ),
-              ),
 
-              // User Info from AuthBloc
-              BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  if (state is Authenticated) {
-                    final user = state.user;
-                    final tierName = user.loyaltyTier != null 
-                        ? '${user.loyaltyTier!.name.substring(0, 1).toUpperCase()}${user.loyaltyTier!.name.substring(1)} Member'
-                        : 'Member';
-                    
-                    return Column(
-                      children: [
-                        // Name
-                        Text(
-                          user.name,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                const SizedBox(height: AppDimensions.xxl),
+
+                // Avatar
+                BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    String? avatarUrl = state is Authenticated ? state.user.fullAvatarUrl : null;
+                    if (avatarUrl == null || avatarUrl.isEmpty) {
+                      try {
+                        avatarUrl = GoogleSignIn().currentUser?.photoUrl;
+                      } catch (_) {}
+                    }
+                    return Container(
+                      width: AppDimensions.avatarXlarge,
+                      height: AppDimensions.avatarXlarge,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.navyLight,
+                            AppColors.navyPrimary.withValues(alpha: 0.8),
+                          ],
                         ),
-                        const SizedBox(height: AppDimensions.xs),
-                        // Email
-                        Text(
-                          user.email,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.silverDark,
-                          ),
+                        border: Border.all(
+                          color: AppColors.tierGold.withValues(alpha: 0.6),
+                          width: 3,
                         ),
-                        const SizedBox(height: AppDimensions.md),
-                        // Loyalty badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppDimensions.lg,
-                            vertical: AppDimensions.sm,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              AppDimensions.radiusCircle,
-                            ),
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.tierGold.withValues(alpha: 0.3),
-                                AppColors.tierGold.withValues(alpha: 0.15),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: AppColors.tierGold.withValues(alpha: 0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.workspace_premium_rounded,
-                                size: AppDimensions.iconSm,
-                                color: AppColors.tierGold,
-                              ),
-                              const SizedBox(width: AppDimensions.sm),
-                              Text(
-                                tierName,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: AppColors.tierGold,
-                                  fontWeight: FontWeight.w700,
+                        ],
+                      ),
+                      child: avatarUrl != null
+                          ? ClipOval(
+                              child: Image.network(
+                                avatarUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(
+                                  Icons.person_rounded,
+                                  size: AppDimensions.iconXl,
+                                  color: AppColors.silverLight,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: AppDimensions.iconXl,
+                              color: AppColors.silverLight,
+                            ),
                     );
-                  }
-                  if (state is Unauthenticated || state is AuthInitial) {
-                    return Column(
-                      children: [
-                        Text(
-                          'Guest',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.bold,
+                  },
+                ),
+
+                // User Info from AuthBloc
+                BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    if (state is Authenticated) {
+                      final user = state.user;
+                      final tierName = user.loyaltyTier != null
+                          ? '${user.loyaltyTier!.name.substring(0, 1).toUpperCase()}${user.loyaltyTier!.name.substring(1)} Member'
+                          : 'Member';
+
+                      return Column(
+                        children: [
+                          // Name
+                          Text(
+                            user.name,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppDimensions.md),
-                        FarchisButton(
-                          label: 'Sign In / Register',
-                          onPressed: () {
-                            context.router.push(const LoginRoute());
-                          },
-                        ),
-                      ],
+                          const SizedBox(height: AppDimensions.xs),
+                          // Email
+                          Text(
+                            user.email,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.silverDark,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          // Loyalty badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppDimensions.lg,
+                              vertical: AppDimensions.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppDimensions.radiusCircle,
+                              ),
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.tierGold.withValues(alpha: 0.3),
+                                  AppColors.tierGold.withValues(alpha: 0.15),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: AppColors.tierGold.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.workspace_premium_rounded,
+                                  size: AppDimensions.iconSm,
+                                  color: AppColors.tierGold,
+                                ),
+                                const SizedBox(width: AppDimensions.sm),
+                                Text(
+                                  tierName,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.tierGold,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    if (state is Unauthenticated || state is AuthInitial) {
+                      return Column(
+                        children: [
+                          Text(
+                            'Guest',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          FarchisButton(
+                            label: 'Sign In / Register',
+                            onPressed: () {
+                              context.router.push(const LoginRoute());
+                            },
+                          ),
+                        ],
+                      );
+                    }
+
+                    // Fallback / Loading
+                    return const SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.white),
+                      ),
                     );
-                  }
-                  
-                  // Fallback / Loading
-                  return const SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.white),
-                    ),
-                  );
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     final theme = Theme.of(context);

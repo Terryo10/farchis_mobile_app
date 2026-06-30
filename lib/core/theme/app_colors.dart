@@ -60,3 +60,11 @@ class AppColors {
   static const Color categoryDetailing = Color(0xFF2196F3);
   static const Color categoryCustom = Color(0xFFFF9800);
 }
+
+class FarchisColors {
+  FarchisColors._();
+
+  static const Color navy = Color(0xFF253971);
+  static const Color dark = Color(0xFF16223F);
+  static const Color light = Color(0xFF5A6FA3);
+}

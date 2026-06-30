@@ -18,6 +18,11 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/gallery/gallery_screen.dart';
 import '../screens/referral/referral_screen.dart';
 import '../screens/notification/notification_list_screen.dart';
+import '../screens/profile/personal_info_screen.dart';
+import '../screens/profile/my_vehicles_screen.dart';
+import '../screens/profile/payment_methods_screen.dart';
+import '../screens/profile/notification_prefs_screen.dart';
+import '../screens/profile/help_support_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -48,6 +53,12 @@ class AppRouter extends RootStackRouter {
         AutoRoute(page: GalleryRoute.page),
         AutoRoute(page: ReferralRoute.page, guards: [authGuard]),
         AutoRoute(page: NotificationListRoute.page, guards: [authGuard]),
+        AutoRoute(page: PersonalInfoRoute.page, guards: [authGuard]),
+        AutoRoute(page: MyVehiclesRoute.page, guards: [authGuard]),
+        AutoRoute(page: PaymentMethodsRoute.page, guards: [authGuard]),
+        AutoRoute(page: NotificationsRoute.page, guards: [authGuard]),
+        AutoRoute(page: HelpSupportRoute.page),
+
       ];
 
   static void navigateFromNotification(NotificationModel notification, AppRouter router) {

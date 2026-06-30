@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../blocs/theme/theme_cubit.dart';
 import '../../../blocs/services/services_bloc.dart';
 import '../../../blocs/services/services_state.dart';
 import '../../../blocs/services/services_event.dart';
@@ -111,66 +112,70 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeMode) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        leading: IconButton(
-          onPressed: () {
-            if (_currentStep > 0) {
-              _goToStep(_currentStep - 1);
-            } else {
-              context.router.maybePop();
-            }
-          },
-          icon: Icon(
-            Icons.arrow_back_rounded,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        title: Text(
-          'Book a Service',
-          style: theme.textTheme.headlineMedium,
-        ),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          // --- Step Indicator ---
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.xxxl,
-              vertical: AppDimensions.lg,
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            leading: IconButton(
+              onPressed: () {
+                if (_currentStep > 0) {
+                  _goToStep(_currentStep - 1);
+                } else {
+                  context.router.maybePop();
+                }
+              },
+              icon: Icon(
+                Icons.arrow_back_rounded,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
-            child: _StepIndicator(
-              currentStep: _currentStep,
-              labels: _stepLabels,
-              isDark: isDark,
-              theme: theme,
+            title: Text(
+              'Book a Service',
+              style: theme.textTheme.headlineMedium,
             ),
+            centerTitle: true,
+            elevation: 0,
           ),
+          body: Column(
+            children: [
+              // --- Step Indicator ---
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.xxxl,
+                  vertical: AppDimensions.lg,
+                ),
+                child: _StepIndicator(
+                  currentStep: _currentStep,
+                  labels: _stepLabels,
+                  isDark: isDark,
+                  theme: theme,
+                ),
+              ),
 
-          // --- Page Content ---
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildServiceStep(theme, isDark),
-                _buildDateStep(theme, isDark),
-                _buildConfirmStep(theme, isDark),
-              ],
-            ),
-          ),
+              // --- Page Content ---
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildServiceStep(theme, isDark),
+                    _buildDateStep(theme, isDark),
+                    _buildConfirmStep(theme, isDark),
+                  ],
+                ),
+              ),
 
-          // --- Bottom Navigation ---
-          _buildBottomBar(theme, isDark),
-        ],
-      ),
+              // --- Bottom Navigation ---
+              _buildBottomBar(theme, isDark),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -228,7 +233,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                       crossAxisCount: 2,
                       crossAxisSpacing: AppDimensions.lg,
                       mainAxisSpacing: AppDimensions.lg,
-                      childAspectRatio: 0.88,
+                      childAspectRatio: 0.80,
                     ),
                     itemCount: services.length,
                     itemBuilder: (context, index) {
@@ -477,14 +482,16 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: AppColors.categoryMaintenance.withValues(alpha: 0.12),
+                          color: isDark
+                              ? FarchisColors.navy.withValues(alpha: 0.25)
+                              : FarchisColors.light.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(
                             AppDimensions.radiusMd,
                           ),
                         ),
                         child: Icon(
-                          Icons.build_circle_outlined,
-                          color: AppColors.categoryMaintenance,
+                          _getServiceIcon(service.slug, service.category),
+                          color: isDark ? FarchisColors.light : FarchisColors.navy,
                           size: AppDimensions.iconLg,
                         ),
                       ),
@@ -548,11 +555,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                           ),
                         ),
                         Text(
-                          '\$${service?.price ?? 0}',
+                          service != null ? _formatPrice(service.price) : '\$0',
                           style: theme.textTheme.headlineMedium?.copyWith(
-                            color: isDark
-                                ? AppColors.darkSuccess
-                                : AppColors.lightSuccess,
+                            color: AppColors.tierGold,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -651,6 +656,76 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     );
   }
 
+}
+
+IconData _getServiceIcon(String slug, ServiceCategory category) {
+  final normalizedSlug = slug.toLowerCase();
+  
+  if (normalizedSlug.contains('engine')) {
+    return Icons.settings_suggest_rounded;
+  } else if (normalizedSlug.contains('full-valet')) {
+    return Icons.auto_awesome_rounded;
+  } else if (normalizedSlug.contains('valet')) {
+    return Icons.cleaning_services_rounded;
+  } else if (normalizedSlug.contains('quick-wash') || normalizedSlug.contains('wash')) {
+    return Icons.water_drop_rounded;
+  } else if (normalizedSlug.contains('polish')) {
+    return Icons.auto_fix_high_rounded;
+  } else if (normalizedSlug.contains('headlight')) {
+    return Icons.light_mode_rounded;
+  } else if (normalizedSlug.contains('interior')) {
+    return Icons.cleaning_services_rounded;
+  } else if (normalizedSlug.contains('paint') || normalizedSlug.contains('spray')) {
+    return Icons.format_paint_rounded;
+  } else if (normalizedSlug.contains('coating') || normalizedSlug.contains('ceramic')) {
+    return Icons.shield_rounded;
+  } else if (normalizedSlug.contains('window') || normalizedSlug.contains('tint')) {
+    return Icons.window_rounded;
+  } else if (normalizedSlug.contains('scratch') || normalizedSlug.contains('dent') || normalizedSlug.contains('bodywork')) {
+    return Icons.car_repair_rounded;
+  }
+
+  switch (category) {
+    case ServiceCategory.mechanical:
+      return Icons.settings_rounded;
+    case ServiceCategory.repairs:
+    case ServiceCategory.bodywork:
+      return Icons.car_repair_rounded;
+    case ServiceCategory.detailing:
+      return Icons.cleaning_services_rounded;
+    case ServiceCategory.paint:
+      return Icons.format_paint_rounded;
+    case ServiceCategory.wash:
+      return Icons.local_car_wash_rounded;
+    case ServiceCategory.accessories:
+      return Icons.directions_car_rounded;
+    case ServiceCategory.electrical:
+      return Icons.electrical_services_rounded;
+    default:
+      return Icons.build_circle_outlined;
+  }
+}
+
+String _truncateDescription(String text) {
+  const int maxLength = 55;
+  if (text.length <= maxLength) return text;
+  
+  final substring = text.substring(0, maxLength);
+  final lastSpace = substring.lastIndexOf(' ');
+  
+  if (lastSpace == -1) {
+    return '$substring...';
+  }
+  
+  return '${substring.substring(0, lastSpace)}...';
+}
+
+String _formatPrice(double price) {
+  if (price == price.toInt()) {
+    return '\$${price.toInt()}';
+  } else {
+    return '\$${price.toStringAsFixed(2)}';
+  }
 }
 
 // =================== Step Indicator ===================
@@ -835,7 +910,7 @@ class _ServiceCardState extends State<_ServiceCard> {
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(
               color: widget.isSelected
-                  ? AppColors.categoryMaintenance
+                  ? (widget.isDark ? FarchisColors.light : FarchisColors.navy)
                   : widget.isDark
                       ? AppColors.navyLight.withValues(alpha: 0.4)
                       : AppColors.lightBorder,
@@ -844,7 +919,7 @@ class _ServiceCardState extends State<_ServiceCard> {
             boxShadow: widget.isSelected
               ? [
                     BoxShadow(
-                      color: AppColors.categoryMaintenance.withValues(alpha: 0.2),
+                      color: (widget.isDark ? FarchisColors.light : FarchisColors.navy).withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -867,13 +942,15 @@ class _ServiceCardState extends State<_ServiceCard> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.categoryMaintenance.withValues(alpha: 0.12),
+                    color: widget.isDark
+                        ? FarchisColors.navy.withValues(alpha: 0.25)
+                        : FarchisColors.light.withValues(alpha: 0.15),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                   child: Icon(
-                    Icons.build_circle_outlined,
-                    color: AppColors.categoryMaintenance,
+                    _getServiceIcon(widget.service.slug, widget.service.category),
+                    color: widget.isDark ? FarchisColors.light : FarchisColors.navy,
                     size: 28,
                   ),
                 ),
@@ -887,9 +964,9 @@ class _ServiceCardState extends State<_ServiceCard> {
                 ),
                 const SizedBox(height: AppDimensions.xs),
                 Text(
-                  widget.service.description,
+                  _truncateDescription(widget.service.description),
                   textAlign: TextAlign.center,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: widget.theme.textTheme.bodySmall?.copyWith(
                     fontSize: 11,
@@ -900,9 +977,9 @@ class _ServiceCardState extends State<_ServiceCard> {
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
-                  'From ${'\$${widget.service.price}'}',
+                  'From ${_formatPrice(widget.service.price)}',
                   style: widget.theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.categoryMaintenance,
+                    color: AppColors.tierGold,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
