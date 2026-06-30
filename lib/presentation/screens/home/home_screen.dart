@@ -24,6 +24,13 @@ import '../../../blocs/auth/auth_state.dart';
 import '../../../blocs/loyalty/loyalty_bloc.dart';
 import '../../../blocs/loyalty/loyalty_event.dart';
 import '../../../blocs/loyalty/loyalty_state.dart';
+import '../../../blocs/scratch_card/scratch_card_bloc.dart';
+import '../../../blocs/scratch_card/scratch_card_event.dart';
+import '../../../blocs/scratch_card/scratch_card_state.dart';
+import '../../../data/models/scratch_card_model.dart';
+import '../../../blocs/my_vehicles/my_vehicles_bloc.dart';
+import '../../../blocs/my_vehicles/my_vehicles_event.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 @RoutePage()
 class HomeScreen extends StatefulWidget {
@@ -80,6 +87,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Trigger data fetches
     context.read<NotificationBloc>().add(const GetNotificationsEvent());
     context.read<PromotionBloc>().add(const GetPromotionsEvent());
+
+    // Fetch scratch cards on initial load
+    final scratchCardState = context.read<ScratchCardBloc>().state;
+    if (scratchCardState is ScratchCardInitial) {
+      context.read<ScratchCardBloc>().add(const GetScratchCardsEvent());
+    }
+
+    // Load vehicles
+    context.read<MyVehiclesBloc>().add(const LoadVehicles());
 
     // Ensure loyalty points are loaded for the header pill
     final loyaltyState = context.read<LoyaltyBloc>().state;
@@ -249,6 +265,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ? '${authState.user.vehicleMake} ${authState.user.vehicleModel}'
                           : 'Add Vehicle';
 
+                      String? avatarUrl;
+                      if (isAuthenticated) {
+                        avatarUrl = authState.user.fullAvatarUrl;
+                        if (avatarUrl == null || avatarUrl.isEmpty) {
+                          try {
+                            avatarUrl = GoogleSignIn().currentUser?.photoUrl;
+                          } catch (_) {}
+                        }
+                      }
+
                       return SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -260,7 +286,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               onTap: () =>
                                   context.router.push(const ProfileRoute()),
                               child: _GlassStatusChip(
-                                icon: Icons.person_outline_rounded,
+                                leading: avatarUrl != null
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          avatarUrl,
+                                          width: AppDimensions.iconXs,
+                                          height: AppDimensions.iconXs,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => const Icon(
+                                            Icons.person_outline_rounded,
+                                            size: AppDimensions.iconXs,
+                                            color: AppColors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                                icon: avatarUrl != null
+                                    ? null
+                                    : Icons.person_outline_rounded,
                                 label: label,
                                 brightness: 1.0,
                               ),
@@ -381,58 +424,121 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ──────────────────────────────────────────────────────────────────────────
 
   Widget _buildServicesGrid(BuildContext context) {
-    final cards = [
-      _ActionCardData(
-        icon: Icons.build_circle_outlined,
-        label: 'Book Service',
-        onTap: () => context.router.push(const CreateBookingRoute()),
-      ),
-      _ActionCardData(
-        icon: Icons.local_shipping_outlined,
-        label: 'Request pickup',
-        onTap: () => context.router.push(DriverConvenienceMapRoute()),
-      ),
-      _ActionCardData(
-        icon: Icons.confirmation_num_outlined,
-        label: 'Scratch Card',
-        onTap: () => context.router.push(const ScratchCardRoute()),
-      ),
-      _ActionCardData(
-        icon: Icons.directions_car_outlined,
-        label: 'My Garage',
-        onTap: () {},
-      ),
-    ];
+    final scratchCardState = context.watch<ScratchCardBloc>().state;
+    final myVehiclesState = context.watch<MyVehiclesBloc>().state;
+
+    final isScratchLoading = scratchCardState is ScratchCardInitial || scratchCardState is ScratchCardsLoading;
+
+    List<ScratchCardModel> scratchCards = [];
+    if (scratchCardState is ScratchCardsLoaded) {
+      scratchCards = scratchCardState.cards;
+    }
+
+    final unusedCards = scratchCards.where((c) => !c.isScratched).toList();
+
+    String scratchCardSubtitle = "Check back after your next booking";
+    String? scratchCardBadge;
+
+    if (isScratchLoading) {
+      scratchCardSubtitle = "You have -- unused card(s)";
+      scratchCardBadge = "Win up to \$--";
+    } else if (unusedCards.isNotEmpty) {
+      scratchCardSubtitle = "You have ${unusedCards.length} unused card${unusedCards.length > 1 ? 's' : ''}";
+      final maxCard = unusedCards.reduce((curr, next) => curr.prizeValue > next.prizeValue ? curr : next);
+      final valStr = maxCard.prizeType == PrizeType.bonus_points
+          ? '${maxCard.prizeValue.toStringAsFixed(0)} pts'
+          : '\$${maxCard.prizeValue.toStringAsFixed(0)}';
+      scratchCardBadge = "Win up to $valStr";
+    }
+
+    String myGarageSubtitle = "Manage your vehicles";
+    if (myVehiclesState.vehicles.isNotEmpty) {
+      final count = myVehiclesState.vehicles.length;
+      myGarageSubtitle = "$count vehicle${count > 1 ? 's' : ''} saved";
+    }
+
+    Widget animate(int index, Widget child) {
+      return AnimatedBuilder(
+        animation: _staggerController,
+        builder: (context, child) {
+          return FadeTransition(
+            opacity: _fadeAnimations[index],
+            child: SlideTransition(
+              position: _slideAnimations[index],
+              child: child,
+            ),
+          );
+        },
+        child: child,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.xxl),
-      child: GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: AppDimensions.lg,
-        crossAxisSpacing: AppDimensions.lg,
-        childAspectRatio: 1.1,
-        children: List.generate(cards.length, (index) {
-          final card = cards[index];
-          return AnimatedBuilder(
-            animation: _staggerController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimations[index],
-                child: SlideTransition(
-                  position: _slideAnimations[index],
-                  child: child,
-                ),
-              );
-            },
-            child: _ActionCard(
-              icon: card.icon,
-              label: card.label,
-              onTap: card.onTap,
+      child: Skeletonizer(
+        enabled: isScratchLoading,
+        effect: ShimmerEffect(
+          baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
+          highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Featured full-width Card: Book a service
+            animate(
+              0,
+              _HomeServicesCard(
+                icon: Icons.build_circle_outlined,
+                title: 'Book a service',
+                subtitle: 'Engine wash, valet and more',
+                isFeatured: true,
+                onTap: () => context.router.push(const CreateBookingRoute()),
+              ),
             ),
-          );
-        }),
+            const SizedBox(height: AppDimensions.md),
+            // 2. Side-by-side cards: Request pickup & My Garage
+            Row(
+              children: [
+                Expanded(
+                  child: animate(
+                    1,
+                    _HomeServicesCard(
+                      icon: Icons.local_shipping_outlined,
+                      title: 'Request pickup',
+                      subtitle: 'We come to you',
+                      onTap: () => context.router.push(DriverConvenienceMapRoute()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppDimensions.md),
+                Expanded(
+                  child: animate(
+                    3,
+                    _HomeServicesCard(
+                      icon: Icons.directions_car_outlined,
+                      title: 'My Garage',
+                      subtitle: myGarageSubtitle,
+                      onTap: () => context.router.push(const MyVehiclesRoute()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.md),
+            // 3. Scratch Card horizontal card
+            animate(
+              2,
+              _HomeServicesCard(
+                icon: Icons.confirmation_num_outlined,
+                title: 'Scratch Card',
+                subtitle: scratchCardSubtitle,
+                isHorizontal: true,
+                badgeText: scratchCardBadge,
+                onTap: () => context.router.push(const ScratchCardRoute()),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -708,13 +814,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _GlassStatusChip extends StatelessWidget {
-  final IconData icon;
+  final Widget? leading;
+  final IconData? icon;
   final String label;
   final double brightness;
   final Color? accentColor;
 
   const _GlassStatusChip({
-    required this.icon,
+    this.leading,
+    this.icon,
     required this.label,
     required this.brightness,
     this.accentColor,
@@ -743,8 +851,12 @@ class _GlassStatusChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: AppDimensions.iconXs, color: iconColor),
-              const SizedBox(width: AppDimensions.sm - 2),
+              if (leading != null)
+                leading!
+              else if (icon != null)
+                Icon(icon, size: AppDimensions.iconXs, color: iconColor),
+              if (leading != null || icon != null)
+                const SizedBox(width: AppDimensions.sm - 2),
               Text(
                 label,
                 style: TextStyle(
@@ -765,34 +877,30 @@ class _GlassStatusChip extends StatelessWidget {
 // Action Card (Material InkWell + gradient press overlay) — STEP 6 polish
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _ActionCardData {
+class _HomeServicesCard extends StatefulWidget {
   final IconData icon;
-  final String label;
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
+  final bool isFeatured;
+  final bool isHorizontal;
+  final String? badgeText;
 
-  const _ActionCardData({
+  const _HomeServicesCard({
     required this.icon,
-    required this.label,
+    required this.title,
+    required this.subtitle,
     required this.onTap,
-  });
-}
-
-class _ActionCard extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
+    this.isFeatured = false,
+    this.isHorizontal = false,
+    this.badgeText,
   });
 
   @override
-  State<_ActionCard> createState() => _ActionCardState();
+  State<_HomeServicesCard> createState() => _HomeServicesCardState();
 }
 
-class _ActionCardState extends State<_ActionCard> {
+class _HomeServicesCardState extends State<_HomeServicesCard> {
   bool _pressed = false;
 
   @override
@@ -800,53 +908,231 @@ class _ActionCardState extends State<_ActionCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final cardColor = theme.cardTheme.color ?? theme.colorScheme.surface;
+
+    final iconBgColor = isDark
+        ? AppColors.navyLight.withValues(alpha: 0.18)
+        : AppColors.navyPrimary.withValues(alpha: 0.08);
+
+    final iconColor = isDark ? AppColors.silverLight : AppColors.navyPrimary;
+
+    final border = Border.all(
+      color: widget.isFeatured
+          ? (isDark ? AppColors.navyLight : AppColors.navyPrimary)
+          : (isDark ? AppColors.navyLight.withValues(alpha: 0.3) : AppColors.lightBorder),
+      width: widget.isFeatured ? 2.0 : 1.0,
+    );
+
+    final backgroundColor = widget.isFeatured && !isDark
+        ? AppColors.navyPrimary.withValues(alpha: 0.03)
+        : cardColor;
+
+    final List<BoxShadow> shadows = _pressed
+        ? []
+        : [
+            BoxShadow(
+              color: AppColors.navyPrimary.withValues(
+                alpha: widget.isFeatured
+                    ? (isDark ? 0.2 : 0.1)
+                    : (isDark ? 0.1 : 0.04),
+              ),
+              blurRadius: widget.isFeatured ? 16 : 8,
+              offset: Offset(0, widget.isFeatured ? 6 : 4),
+            ),
+          ];
+
+    Widget content;
+
+    if (widget.isHorizontal) {
+      content = Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.lg,
+          vertical: AppDimensions.md,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.md),
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                widget.icon,
+                size: AppDimensions.iconSm,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? AppColors.silverDark : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.badgeText != null) ...[
+              const SizedBox(width: AppDimensions.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.md,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFD4A847),
+                      Color(0xFFB8942E),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusCircle),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.tierGold.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  widget.badgeText!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ] else ...[
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+            ],
+          ],
+        ),
+      );
+    } else if (widget.isFeatured) {
+      content = Padding(
+        padding: const EdgeInsets.all(AppDimensions.lg),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.md),
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                widget.icon,
+                size: AppDimensions.iconMd,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? AppColors.silverDark : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppDimensions.sm),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? AppColors.silverDark : AppColors.navyPrimary,
+            ),
+          ],
+        ),
+      );
+    } else {
+      content = Padding(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.sm + 2),
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                widget.icon,
+                size: AppDimensions.iconSm + 2,
+                color: iconColor,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              widget.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              widget.subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: isDark ? AppColors.silverDark : AppColors.lightTextSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Semantics(
       button: true,
-      label: widget.label,
+      label: widget.title,
       child: Material(
-        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
-        // STEP 6: elevated shadow for depth
-        elevation: 0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
+          height: widget.isFeatured
+              ? 84
+              : widget.isHorizontal
+                  ? 76
+                  : 120,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
-            border: Border.all(
-              color: isDark ? AppColors.navyLight : AppColors.lightBorder,
-            ),
-            // Elevated shadow
-            boxShadow: _pressed
-                ? []
-                : [
-                    BoxShadow(
-                      color: AppColors.navyPrimary
-                          .withValues(alpha: isDark ? 0.25 : 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                    if (!isDark)
-                      const BoxShadow(
-                        color: Color(0x06000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                  ],
-            gradient: _pressed
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      isDark
-                          ? const Color(0x0DFFFFFF)
-                          : const Color(0x0A10213B),
-                      isDark
-                          ? const Color(0x05FFFFFF)
-                          : const Color(0x0510213B),
-                    ],
-                  )
-                : null,
+            border: border,
+            boxShadow: shadows,
           ),
           child: InkWell(
             onTap: widget.onTap,
@@ -860,39 +1146,7 @@ class _ActionCardState extends State<_ActionCard> {
             highlightColor: isDark
                 ? const Color(0x0DFFFFFF)
                 : const Color(0x0D10213B),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppDimensions.md),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.navyDark
-                        : AppColors.silverLight,
-                    shape: BoxShape.circle,
-                    // Subtle inner shadow accent on the icon container
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.navyPrimary
-                            .withValues(alpha: isDark ? 0.3 : 0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: AppDimensions.iconLg, // STEP 6: full iconLg (was -4)
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.md),
-                Text(
-                  widget.label,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ],
-            ),
+            child: content,
           ),
         ),
       ),

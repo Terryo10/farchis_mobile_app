@@ -9,6 +9,10 @@ import 'presentation/router/app_router.dart';
 import 'presentation/router/auth_guard.dart';
 import 'blocs/auth/auth_event.dart';
 import 'blocs/theme/theme_cubit.dart';
+import 'blocs/personal_info/personal_info_bloc.dart';
+import 'blocs/my_vehicles/my_vehicles_bloc.dart';
+import 'blocs/payment_methods/payment_methods_bloc.dart';
+import 'blocs/notification_prefs/notification_prefs_bloc.dart';
 
 class FarchisApp extends StatefulWidget {
   const FarchisApp({super.key});
@@ -60,6 +64,10 @@ class _FarchisAppState extends State<FarchisApp> {
           BlocProvider.value(value: Injection.scratchCardBloc),
           BlocProvider.value(value: Injection.referralBloc),
           BlocProvider.value(value: Injection.notificationBloc),
+          BlocProvider.value(value: Injection.personalInfoBloc),
+          BlocProvider.value(value: Injection.myVehiclesBloc),
+          BlocProvider.value(value: Injection.paymentMethodsBloc),
+          BlocProvider.value(value: Injection.notificationPrefsBloc),
         ],
         child: BlocBuilder<ThemeCubit, ThemeMode>(
           builder: (context, themeMode) {

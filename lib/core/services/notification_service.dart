@@ -7,10 +7,13 @@ import '../../presentation/router/app_router.dart';
 import '../../data/models/notification_model.dart';
 import '../di/injection.dart';
 import '../../blocs/auth/auth_event.dart';
+import '../../firebase_options.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   // Handle background message if needed
 }
 
@@ -19,7 +22,9 @@ class NotificationService {
 
   static Future<void> initialize(AppRouter router) async {
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 

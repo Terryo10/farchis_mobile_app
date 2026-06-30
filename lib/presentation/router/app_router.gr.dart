@@ -317,3 +317,83 @@ class SplashRoute extends PageRouteInfo<void> {
     },
   );
 }
+
+/// generated route for
+/// [PersonalInfoScreen]
+class PersonalInfoRoute extends PageRouteInfo<void> {
+  const PersonalInfoRoute({List<PageRouteInfo>? children})
+    : super(PersonalInfoRoute.name, initialChildren: children);
+
+  static const String name = 'PersonalInfoRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PersonalInfoScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [MyVehiclesScreen]
+class MyVehiclesRoute extends PageRouteInfo<void> {
+  const MyVehiclesRoute({List<PageRouteInfo>? children})
+    : super(MyVehiclesRoute.name, initialChildren: children);
+
+  static const String name = 'MyVehiclesRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MyVehiclesScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [PaymentMethodsScreen]
+class PaymentMethodsRoute extends PageRouteInfo<void> {
+  const PaymentMethodsRoute({List<PageRouteInfo>? children})
+    : super(PaymentMethodsRoute.name, initialChildren: children);
+
+  static const String name = 'PaymentMethodsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PaymentMethodsScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [NotificationPrefsScreen]
+class NotificationsRoute extends PageRouteInfo<void> {
+  const NotificationsRoute({List<PageRouteInfo>? children})
+    : super(NotificationsRoute.name, initialChildren: children);
+
+  static const String name = 'NotificationsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const NotificationPrefsScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [HelpSupportScreen]
+class HelpSupportRoute extends PageRouteInfo<void> {
+  const HelpSupportRoute({List<PageRouteInfo>? children})
+    : super(HelpSupportRoute.name, initialChildren: children);
+
+  static const String name = 'HelpSupportRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const HelpSupportScreen();
+    },
+  );
+}

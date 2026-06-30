@@ -15,6 +15,8 @@ import '../../data/repositories/review_repository.dart';
 import '../../data/repositories/scratch_card_repository.dart';
 import '../../data/repositories/service_repository.dart';
 import '../../data/repositories/vehicle_repository.dart';
+import '../../data/providers/payment_provider.dart';
+import '../../data/providers/local_payment_provider.dart';
 
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/booking/booking_bloc.dart';
@@ -28,6 +30,10 @@ import '../../blocs/gallery/gallery_bloc.dart';
 import '../../blocs/scratch_card/scratch_card_bloc.dart';
 import '../../blocs/referral/referral_bloc.dart';
 import '../../blocs/notification/notification_bloc.dart';
+import '../../blocs/personal_info/personal_info_bloc.dart';
+import '../../blocs/my_vehicles/my_vehicles_bloc.dart';
+import '../../blocs/payment_methods/payment_methods_bloc.dart';
+import '../../blocs/notification_prefs/notification_prefs_bloc.dart';
 
 class Injection {
   Injection._();
@@ -50,6 +56,7 @@ class Injection {
   static late final ScratchCardRepository scratchCardRepository;
   static late final ServiceRepository serviceRepository;
   static late final VehicleRepository vehicleRepository;
+  static late final PaymentProvider paymentProvider;
 
   // Blocs
   static late final AuthBloc _authBloc;
@@ -64,6 +71,10 @@ class Injection {
   static late final ScratchCardBloc _scratchCardBloc;
   static late final ReferralBloc _referralBloc;
   static late final NotificationBloc _notificationBloc;
+  static late final PersonalInfoBloc _personalInfoBloc;
+  static late final MyVehiclesBloc _myVehiclesBloc;
+  static late final PaymentMethodsBloc _paymentMethodsBloc;
+  static late final NotificationPrefsBloc _notificationPrefsBloc;
 
   static Future<void> init() async {
     secureStorage = const FlutterSecureStorage();
@@ -84,6 +95,7 @@ class Injection {
     scratchCardRepository = ScratchCardRepository(httpClient);
     serviceRepository = ServiceRepository(httpClient);
     vehicleRepository = VehicleRepository(httpClient);
+    paymentProvider = LocalPaymentProvider();
 
     // Init Blocs
     _authBloc = AuthBloc(authRepository: authRepository, secureStorage: secureStorage);
@@ -98,6 +110,10 @@ class Injection {
     _scratchCardBloc = ScratchCardBloc(scratchCardRepository: scratchCardRepository);
     _referralBloc = ReferralBloc(referralRepository: referralRepository);
     _notificationBloc = NotificationBloc(notificationRepository: notificationRepository);
+    _personalInfoBloc = PersonalInfoBloc(authRepository: authRepository, authBloc: _authBloc);
+    _myVehiclesBloc = MyVehiclesBloc(authBloc: _authBloc);
+    _paymentMethodsBloc = PaymentMethodsBloc(paymentProvider: paymentProvider);
+    _notificationPrefsBloc = NotificationPrefsBloc(prefs: sharedPreferences);
   }
 
   static AuthBloc get authBloc => _authBloc;
@@ -112,4 +128,8 @@ class Injection {
   static ScratchCardBloc get scratchCardBloc => _scratchCardBloc;
   static ReferralBloc get referralBloc => _referralBloc;
   static NotificationBloc get notificationBloc => _notificationBloc;
+  static PersonalInfoBloc get personalInfoBloc => _personalInfoBloc;
+  static MyVehiclesBloc get myVehiclesBloc => _myVehiclesBloc;
+  static PaymentMethodsBloc get paymentMethodsBloc => _paymentMethodsBloc;
+  static NotificationPrefsBloc get notificationPrefsBloc => _notificationPrefsBloc;
 }

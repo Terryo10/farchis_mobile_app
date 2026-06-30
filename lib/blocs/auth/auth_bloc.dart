@@ -31,6 +31,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       AuthCheckRequested event, Emitter<AuthState> emit) async {
     final token = await secureStorage.read(key: 'auth_token');
     if (token != null) {
+      try {
+        final googleSignIn = GoogleSignIn(
+          clientId: '601498933164-h445r9l8f82vq35hie26plki6n061qk1.apps.googleusercontent.com',
+          serverClientId: '601498933164-svtu2ol1nt1uvficg0ljuclk80jtbsof.apps.googleusercontent.com',
+        );
+        await googleSignIn.signInSilently();
+      } catch (_) {}
+
       final result = await authRepository.getMe();
       result.when(
         onSuccess: (user) => emit(Authenticated(user)),

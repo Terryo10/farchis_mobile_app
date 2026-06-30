@@ -51,6 +51,15 @@ class AuthRepository {
     }
   }
 
+  Future<Result<UserModel>> updateProfile(Map<String, dynamic> payload) async {
+    try {
+      final response = await client.put(ApiConstants.authUpdateProfile, body: payload);
+      return Result.success(UserModel.fromJson(response['data']));
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
   Future<Result<UserModel>> getMe() async {
     try {
       final response = await client.get(ApiConstants.authMe);

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "545296444047",
+    "project_id": "farchis-ceeb4",
+    "storage_bucket": "farchis-ceeb4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:545296444047:android:93c64faf2d72195cf6defa",
+        "android_client_info": {
+          "package_name": "com.example.farchis_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBr1sLSTziD2TkLsaZTPTIHyPiiOJsPyQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
