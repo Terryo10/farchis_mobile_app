@@ -56,7 +56,7 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
-  IconData _getPrizeIcon(PrizeType type) {
+  IconData _getPrizeIcon(PrizeType? type) {
     switch (type) {
       case PrizeType.discount:
         return Icons.percent_rounded;
@@ -64,10 +64,12 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
         return Icons.local_car_wash_rounded;
       case PrizeType.bonus_points:
         return Icons.stars_rounded;
+      case null:
+        return Icons.card_giftcard_rounded;
     }
   }
 
-  Color _getPrizeColor(PrizeType type, bool isDark) {
+  Color _getPrizeColor(PrizeType? type, bool isDark) {
     switch (type) {
       case PrizeType.discount:
         return isDark ? AppColors.darkInfo : AppColors.lightInfo;
@@ -75,17 +77,21 @@ class _ScratchCardScreenState extends State<ScratchCardScreen>
         return AppColors.categoryDetailing;
       case PrizeType.bonus_points:
         return AppColors.tierGold;
+      case null:
+        return isDark ? AppColors.darkInfo : AppColors.lightInfo;
     }
   }
 
-  String _getPrizeTitle(PrizeType type, double value) {
+  String _getPrizeTitle(PrizeType? type, double? value) {
     switch (type) {
       case PrizeType.discount:
-        return '${value.toInt()}% Off Next Service';
+        return '${(value ?? 0).toInt()}% Off Next Service';
       case PrizeType.free_valet:
         return 'Free Valet Service';
       case PrizeType.bonus_points:
-        return '${value.toInt()} Bonus Points';
+        return '${(value ?? 0).toInt()} Bonus Points';
+      case null:
+        return 'Scratch to Reveal';
     }
   }
 
@@ -792,7 +798,7 @@ class _ScratchRewardDialog extends StatelessWidget {
     required this.onClaim,
   });
 
-  IconData _getPrizeIcon(PrizeType type) {
+  IconData _getPrizeIcon(PrizeType? type) {
     switch (type) {
       case PrizeType.discount:
         return Icons.percent_rounded;
@@ -800,21 +806,25 @@ class _ScratchRewardDialog extends StatelessWidget {
         return Icons.local_car_wash_rounded;
       case PrizeType.bonus_points:
         return Icons.stars_rounded;
+      case null:
+        return Icons.card_giftcard_rounded;
     }
   }
 
-  String _getPrizeTitle(PrizeType type, double value) {
+  String _getPrizeTitle(PrizeType? type, double? value) {
     switch (type) {
       case PrizeType.discount:
-        return '${value.toInt()}% Off';
+        return '${(value ?? 0).toInt()}% Off';
       case PrizeType.free_valet:
         return 'Free Valet';
       case PrizeType.bonus_points:
-        return '+${value.toInt()} Points';
+        return '+${(value ?? 0).toInt()} Points';
+      case null:
+        return 'Scratch to Reveal';
     }
   }
 
-  String _getPrizeSub(PrizeType type) {
+  String _getPrizeSub(PrizeType? type) {
     switch (type) {
       case PrizeType.discount:
         return 'Discount code added to your account!';
@@ -822,6 +832,8 @@ class _ScratchRewardDialog extends StatelessWidget {
         return 'Redeemable on your next workshop visit!';
       case PrizeType.bonus_points:
         return 'Loyalty points added to your wallet!';
+      case null:
+        return 'Scratch your card to reveal your prize!';
     }
   }
 

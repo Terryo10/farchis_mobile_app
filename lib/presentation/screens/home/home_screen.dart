@@ -455,10 +455,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       scratchCardBadge = "Win up to \$--";
     } else if (unusedCards.isNotEmpty) {
       scratchCardSubtitle = "You have ${unusedCards.length} unused card${unusedCards.length > 1 ? 's' : ''}";
-      final maxCard = unusedCards.reduce((curr, next) => curr.prizeValue > next.prizeValue ? curr : next);
+      final maxCard = unusedCards.reduce((curr, next) => (curr.prizeValue ?? 0) > (next.prizeValue ?? 0) ? curr : next);
       final valStr = maxCard.prizeType == PrizeType.bonus_points
-          ? '${maxCard.prizeValue.toStringAsFixed(0)} pts'
-          : '\$${maxCard.prizeValue.toStringAsFixed(0)}';
+          ? '${(maxCard.prizeValue ?? 0).toStringAsFixed(0)} pts'
+          : '\$${(maxCard.prizeValue ?? 0).toStringAsFixed(0)}';
       scratchCardBadge = "Win up to $valStr";
     }
 

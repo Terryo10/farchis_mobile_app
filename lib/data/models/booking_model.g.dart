@@ -22,7 +22,7 @@ BookingModel _$BookingModelFromJson(Map<String, dynamic> json) => BookingModel(
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  totalAmount: (json['total_amount'] as num).toDouble(),
+  totalAmount: (json['total_amount'] as num?)?.toDouble(),
   paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['payment_status']),
   paymentReference: json['payment_reference'] as String?,
   invoiceUrl: json['invoice_url'] as String?,

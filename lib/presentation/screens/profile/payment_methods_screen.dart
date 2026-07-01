@@ -41,45 +41,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Stub notice banner ────────────────────────────────────────────
-          // STUB: Remove this banner when the real payment provider is wired.
-          // See lib/data/providers/local_payment_provider.dart for swap guide.
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(AppDimensions.lg),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.md,
-              vertical: AppDimensions.sm,
-            ),
-            decoration: BoxDecoration(
-              color: (isDark ? AppColors.navyLight : AppColors.navyPrimary)
-                  .withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(
-                color: (isDark ? AppColors.navyLight : AppColors.navyPrimary)
-                    .withValues(alpha: 0.25),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  size: AppDimensions.iconSm,
-                  color: isDark ? AppColors.navyLight : AppColors.navyPrimary,
-                ),
-                const SizedBox(width: AppDimensions.sm),
-                Expanded(
-                  child: Text(
-                    'Payment integration coming soon — saved methods are stored locally.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark ? AppColors.navyLight : AppColors.navyPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           // ── Methods list ──────────────────────────────────────────────────
           Expanded(
             child: BlocBuilder<PaymentMethodsBloc, PaymentMethodsState>(
@@ -89,8 +50,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     enabled: true,
                     effect: ShimmerEffect(
                       baseColor: AppColors.navyLight.withValues(alpha: 0.3),
-                      highlightColor:
-                          AppColors.navyPrimary.withValues(alpha: 0.5),
+                      highlightColor: AppColors.navyPrimary.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                     child: _buildSkeletonList(),
                   );
@@ -105,7 +67,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     horizontal: AppDimensions.lg,
                   ),
                   itemCount: state.methods.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(height: AppDimensions.md),
                   itemBuilder: (context, index) {
                     final method = state.methods[index];
@@ -115,9 +77,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       onSetDefault: () => context
                           .read<PaymentMethodsBloc>()
                           .add(SetDefaultPaymentMethod(method.id)),
-                      onDelete: () => context
-                          .read<PaymentMethodsBloc>()
-                          .add(RemovePaymentMethod(method.id)),
+                      onDelete: () => context.read<PaymentMethodsBloc>().add(
+                        RemovePaymentMethod(method.id),
+                      ),
                     );
                   },
                 );
@@ -140,8 +102,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.lg),
       itemCount: 3,
-      separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.md),
-      itemBuilder: (_, __) => Container(
+      separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.md),
+      itemBuilder: (_, _) => Container(
         height: 72,
         decoration: BoxDecoration(
           color: AppColors.navyLight.withValues(alpha: 0.2),
@@ -174,8 +136,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             const SizedBox(height: AppDimensions.xxl),
             Text(
               'No payment methods',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: AppDimensions.sm),
             Text(
@@ -237,7 +200,7 @@ class _PaymentMethodCard extends StatelessWidget {
         border: Border.all(
           color: method.isDefault
               ? (isDark ? AppColors.navyLight : AppColors.navyPrimary)
-                  .withValues(alpha: 0.5)
+                    .withValues(alpha: 0.5)
               : theme.colorScheme.outline.withValues(alpha: 0.3),
           width: method.isDefault ? 1.5 : 1,
         ),
@@ -274,8 +237,9 @@ class _PaymentMethodCard extends StatelessWidget {
               children: [
                 Text(
                   method.displayLabel,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Row(
@@ -283,7 +247,9 @@ class _PaymentMethodCard extends StatelessWidget {
                     Text(
                       isCard ? 'Credit / Debit Card' : 'EcoCash',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                     if (method.isDefault) ...[
@@ -294,12 +260,14 @@ class _PaymentMethodCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: (isDark
-                                  ? AppColors.navyLight
-                                  : AppColors.navyPrimary)
-                              .withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(AppDimensions.radiusCircle),
+                          color:
+                              (isDark
+                                      ? AppColors.navyLight
+                                      : AppColors.navyPrimary)
+                                  .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusCircle,
+                          ),
                         ),
                         child: Text(
                           'Default',
@@ -342,10 +310,14 @@ class _PaymentMethodCard extends StatelessWidget {
               const PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
-                  leading: Icon(Icons.delete_outline_rounded,
-                      color: AppColors.lightError),
-                  title: Text('Remove',
-                      style: TextStyle(color: AppColors.lightError)),
+                  leading: Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.lightError,
+                  ),
+                  title: Text(
+                    'Remove',
+                    style: TextStyle(color: AppColors.lightError),
+                  ),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
@@ -370,7 +342,8 @@ class _AddMethodSheet extends StatefulWidget {
 class _AddMethodSheetState extends State<_AddMethodSheet> {
   PaymentMethodType _selectedType = PaymentMethodType.card;
   final _field1Controller = TextEditingController(); // card number / phone
-  final _field2Controller = TextEditingController(); // cardholder name / (unused for ecocash)
+  final _field2Controller =
+      TextEditingController(); // cardholder name / (unused for ecocash)
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -434,9 +407,12 @@ class _AddMethodSheetState extends State<_AddMethodSheet> {
               ),
             ),
             const SizedBox(height: AppDimensions.lg),
-            Text('Add Payment Method',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Add Payment Method',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: AppDimensions.lg),
 
             // Type selector
@@ -464,16 +440,15 @@ class _AddMethodSheetState extends State<_AddMethodSheet> {
             // Fields
             TextFormField(
               controller: _field1Controller,
-              keyboardType: isCard
-                  ? TextInputType.number
-                  : TextInputType.phone,
+              keyboardType: isCard ? TextInputType.number : TextInputType.phone,
               decoration: InputDecoration(
                 labelText: isCard ? 'Card Number' : 'EcoCash Number',
                 hintText: isCard ? '1234 5678 9012 3456' : '+263 77 123 4567',
                 border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'This field is required' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'This field is required'
+                  : null,
             ),
 
             if (isCard) ...[
@@ -500,13 +475,13 @@ class _AddMethodSheetState extends State<_AddMethodSheet> {
                   foregroundColor: AppColors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                 ),
-                child: const Text('Save',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16)),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
               ),
             ),
             const SizedBox(height: AppDimensions.xl),
@@ -546,7 +521,7 @@ class _TypeChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? (isDark ? AppColors.navyLight : AppColors.navyPrimary)
-                  .withValues(alpha: 0.12)
+                    .withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
           border: Border.all(

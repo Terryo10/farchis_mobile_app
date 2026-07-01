@@ -27,8 +27,8 @@ class ServiceModel {
   final String description;
   @JsonKey(unknownEnumValue: ServiceCategory.other)
   final ServiceCategory category;
-  final double price;
-  final int durationMinutes;
+  final double? price;
+  final int? durationMinutes;
   final bool isActive;
   @JsonKey(name: 'image')
   final String? imageUrl;
@@ -39,8 +39,8 @@ class ServiceModel {
     required this.slug,
     required this.description,
     required this.category,
-    required this.price,
-    required this.durationMinutes,
+    this.price,
+    this.durationMinutes,
     required this.isActive,
     this.imageUrl,
   });

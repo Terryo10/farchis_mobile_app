@@ -22,7 +22,7 @@ class BookingModel {
   final BookingStatus status;
   final String? notes;
   final List<String> damagePhotos;
-  final double totalAmount;
+  final double? totalAmount;
   final PaymentStatus paymentStatus;
   final String? paymentReference;
   final String? invoiceUrl;
@@ -40,7 +40,7 @@ class BookingModel {
     required this.status,
     this.notes,
     this.damagePhotos = const [],
-    required this.totalAmount,
+    this.totalAmount,
     required this.paymentStatus,
     this.paymentReference,
     this.invoiceUrl,

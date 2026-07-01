@@ -851,7 +851,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                             _resolvedPrice != null
                                 ? _formatPrice(_resolvedPrice!)
                                 : (service != null
-                                      ? _formatPrice(service.price)
+                                      ? _formatPrice(service.price!)
                                       : '\$0'),
                             style: theme.textTheme.headlineMedium?.copyWith(
                               color: AppColors.tierGold,
@@ -1398,7 +1398,7 @@ class _ServiceCardState extends State<_ServiceCard> {
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
-                  'From ${_formatPrice(widget.service.price)}',
+                  'From ${widget.service.price != null ? _formatPrice(widget.service.price!) : '\$0'}',
                   style: widget.theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.tierGold,
                     fontWeight: FontWeight.w700,
