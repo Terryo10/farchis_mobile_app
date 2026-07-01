@@ -1,5 +1,6 @@
-# flutter_stripe requires a minimum iOS deployment target of 13.0.
-platform :ios, '13.0'
+# firebase_analytics (Firebase SDK 12.x) now requires iOS 15.0 minimum;
+# flutter_stripe only needs 13.0, so the higher Firebase floor governs.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

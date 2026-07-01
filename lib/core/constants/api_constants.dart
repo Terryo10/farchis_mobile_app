@@ -88,9 +88,10 @@ class ApiConstants {
   static String get broadcastingAuthUrl => '$baseUrl/broadcasting/auth';
 
   // Stripe
-  // Placeholder — must match the backend's STRIPE_KEY (publishable key) in
+  // Must match the backend's STRIPE_KEY (publishable key) in
   // config/services.php / .env for PaymentSheet to work end-to-end.
-  static const String stripePublishableKey = 'pk_test_REPLACE_ME';
+  static const String stripePublishableKey =
+      'pk_test_51RcPAL4Z4EqjbRzAe0hBy3i2PuV5OMTjKzBV02LP7Ob6LhPlQgf0CEk7P3vujWdMHXncpRyoLz6KNlCxjdjBHYax00a2l2uL7e';
 
   // Reverb (self-hosted Laravel Reverb, Pusher-protocol). These match the
   // backend's local .env defaults — update if the backend's REVERB_* values
