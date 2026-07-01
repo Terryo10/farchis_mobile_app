@@ -30,6 +30,7 @@ import '../../../blocs/scratch_card/scratch_card_state.dart';
 import '../../../data/models/scratch_card_model.dart';
 import '../../../blocs/my_vehicles/my_vehicles_bloc.dart';
 import '../../../blocs/my_vehicles/my_vehicles_event.dart';
+import '../../../data/models/vehicle_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 @RoutePage()
@@ -49,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PageController _carouselController = PageController();
   int _carouselPage = 0;
 
-  static const int _cardCount = 4;
+  static const int _cardCount = 5;
 
   // Fallback promo cards shown when API fails or returns empty
   static const List<_PromoCardData> _fallbackPromos = [
@@ -260,9 +261,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       final label = isAuthenticated
                           ? authState.user.name
                           : 'Guest — sign in';
-                      final vehicleLabel = (isAuthenticated &&
-                              authState.user.vehicleMake != null)
-                          ? '${authState.user.vehicleMake} ${authState.user.vehicleModel}'
+                      final vehiclesState = context.watch<MyVehiclesBloc>().state;
+                      VehicleModel? primaryVehicle;
+                      for (final v in vehiclesState.vehicles) {
+                        if (v.isPrimary) {
+                          primaryVehicle = v;
+                          break;
+                        }
+                      }
+                      primaryVehicle ??= vehiclesState.vehicles.isNotEmpty
+                          ? vehiclesState.vehicles.first
+                          : null;
+                      final vehicleLabel = (isAuthenticated && primaryVehicle != null)
+                          ? primaryVehicle.displayName
                           : 'Add Vehicle';
 
                       String? avatarUrl;
@@ -312,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             // Vehicle chip
                             GestureDetector(
                               onTap: () =>
-                                  context.router.push(const ProfileRoute()),
+                                  context.router.push(const MyVehiclesRoute()),
                               child: _GlassStatusChip(
                                 icon: Icons.directions_car_rounded,
                                 label: vehicleLabel,
@@ -535,6 +546,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 isHorizontal: true,
                 badgeText: scratchCardBadge,
                 onTap: () => context.router.push(const ScratchCardRoute()),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.md),
+            // 4. Vehicle inspection horizontal card
+            animate(
+              4,
+              _HomeServicesCard(
+                icon: Icons.fact_check_outlined,
+                title: 'Request an Inspection',
+                subtitle: 'Panel-beating & damage assessment',
+                isHorizontal: true,
+                onTap: () => context.router.push(const InspectionRequestListRoute()),
               ),
             ),
           ],

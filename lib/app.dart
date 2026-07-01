@@ -45,6 +45,9 @@ class _FarchisAppState extends State<FarchisApp> {
         RepositoryProvider.value(value: Injection.referralRepository),
         RepositoryProvider.value(value: Injection.notificationRepository),
         RepositoryProvider.value(value: Injection.vehicleRepository),
+        RepositoryProvider.value(value: Injection.inspectionRequestRepository),
+        RepositoryProvider.value(value: Injection.chatRepository),
+        RepositoryProvider.value(value: Injection.pusherService),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -52,6 +55,8 @@ class _FarchisAppState extends State<FarchisApp> {
           BlocProvider.value(value: Injection.authBloc),
           BlocProvider.value(value: Injection.bookingBloc),
           BlocProvider.value(value: Injection.bookingCreateBloc),
+          BlocProvider.value(value: Injection.inspectionRequestBloc),
+          BlocProvider.value(value: Injection.conversationsBloc),
           BlocProvider.value(value: Injection.loyaltyBloc),
           BlocProvider.value(value: Injection.mapsBloc),
           BlocProvider.value(value: Injection.servicesBloc),

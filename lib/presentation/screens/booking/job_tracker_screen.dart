@@ -2,14 +2,11 @@ import 'dart:math' as math;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/farchis_button.dart';
 
-import '../../../blocs/auth/auth_bloc.dart';
-import '../../../blocs/auth/auth_state.dart';
 import '../../../data/models/booking_model.dart';
 
 @RoutePage()
@@ -217,12 +214,8 @@ class _VehicleInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.watch<AuthBloc>().state;
-    final user = authState is Authenticated ? authState.user : null;
-
-    final vehicleName = [user?.vehicleMake, user?.vehicleModel]
-        .where((s) => s != null && s.isNotEmpty)
-        .join(' ');
+    final vehicle = booking.vehicle;
+    final vehicleName = vehicle?.displayName ?? '';
 
     return Container(
       width: double.infinity,
@@ -283,7 +276,7 @@ class _VehicleInfoCard extends StatelessWidget {
                     children: [
                       _InfoChip(
                         icon: Icons.confirmation_number_outlined,
-                        label: user?.vehiclePlate ?? '—',
+                        label: vehicle?.plate ?? '—',
                       ),
                       const SizedBox(width: AppDimensions.sm),
                       _InfoChip(

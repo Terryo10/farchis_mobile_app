@@ -28,6 +28,20 @@ class ServiceRepository {
     }
   }
 
+  /// Authoritative price for [serviceId], resolved server-side from
+  /// [vehicleId]'s size category. Never compute/display a price from
+  /// [ServiceModel.price] directly once a vehicle is selected.
+  Future<Result<double>> getPrice(int serviceId, int? vehicleId) async {
+    try {
+      final query = vehicleId != null ? '?vehicle_id=$vehicleId' : '';
+      final response = await client.get('${ApiConstants.servicePrice(serviceId.toString())}$query');
+      final price = (response['data']['price'] as num).toDouble();
+      return Result.success(price);
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
   FailureResult<T> _handleError<T>(Object e) {
     if (e is ValidationException) {
       final errors = e.errors.map((key, value) => MapEntry(key, value.toString()));

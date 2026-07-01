@@ -10,7 +10,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
 import '../../router/app_router.dart';
-import '../../../data/repositories/vehicle_repository.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 @RoutePage()
@@ -109,6 +108,24 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: AppDimensions.xxl),
 
+                        // Vehicle services section
+                        _buildSectionHeader(context, 'Vehicle Services'),
+                        const SizedBox(height: AppDimensions.sm),
+                        _buildSettingsGroup(context, theme, isDark, [
+                          _SettingsItem(
+                            icon: Icons.fact_check_outlined,
+                            label: 'Request an Inspection',
+                            onTap: () => context.router.push(const InspectionRequestFormRoute()),
+                          ),
+                          _SettingsItem(
+                            icon: Icons.assignment_outlined,
+                            label: 'My Inspection Requests',
+                            onTap: () => context.router.push(const InspectionRequestListRoute()),
+                          ),
+                        ]),
+
+                        const SizedBox(height: AppDimensions.xxl),
+
                         // Preferences section
                         _buildSectionHeader(context, 'Preferences'),
                         const SizedBox(height: AppDimensions.sm),
@@ -116,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _SettingsItem(
                             icon: Icons.notifications_outlined,
                             label: 'Notifications',
-                            onTap: () => context.router.push(const NotificationsRoute()),
+                            onTap: () => context.router.push(const NotificationPrefsRoute()),
                           ),
                           _SettingsItem(
                             icon: Icons.dark_mode_outlined,
@@ -138,6 +155,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                         _buildSectionHeader(context, 'Support'),
                         const SizedBox(height: AppDimensions.sm),
                         _buildSettingsGroup(context, theme, isDark, [
+                          _SettingsItem(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            label: 'Chat with us',
+                            onTap: () => context.router.push(const ConversationsRoute()),
+                          ),
                           _SettingsItem(
                             icon: Icons.help_outline_rounded,
                             label: 'Help & Support',
@@ -564,7 +586,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           onChanged: (value) {
             context.read<ThemeCubit>().toggleTheme();
           },
-          activeColor: isDark ? AppColors.darkInfo : AppColors.lightInfo,
+          activeThumbColor: isDark ? AppColors.darkInfo : AppColors.lightInfo,
         );
       },
     );
@@ -587,146 +609,3 @@ class _SettingsItem {
   });
 }
 
-class _VehicleManagementForm extends StatefulWidget {
-  const _VehicleManagementForm();
-
-  @override
-  State<_VehicleManagementForm> createState() => _VehicleManagementFormState();
-}
-
-class _VehicleManagementFormState extends State<_VehicleManagementForm> {
-  final _makeController = TextEditingController();
-  final _modelController = TextEditingController();
-  final _yearController = TextEditingController();
-  final _plateController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final authState = context.read<AuthBloc>().state;
-    if (authState is Authenticated) {
-      final user = authState.user;
-      _makeController.text = user.vehicleMake ?? '';
-      _modelController.text = user.vehicleModel ?? '';
-      _yearController.text = user.vehicleYear?.toString() ?? '';
-      _plateController.text = user.vehiclePlate ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _makeController.dispose();
-    _modelController.dispose();
-    _yearController.dispose();
-    _plateController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveVehicle() async {
-    final make = _makeController.text.trim();
-    final model = _modelController.text.trim();
-    final yearStr = _yearController.text.trim();
-    final plate = _plateController.text.trim();
-
-    if (make.isEmpty || model.isEmpty || yearStr.isEmpty || plate.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    final year = int.tryParse(yearStr);
-    if (year == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid year')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final payload = {
-      'vehicle_make': make,
-      'vehicle_model': model,
-      'vehicle_year': year,
-      'vehicle_plate': plate,
-    };
-
-    final repository = context.read<VehicleRepository>();
-    final result = await repository.updateVehicle(payload);
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      result.when(
-        onSuccess: (updatedUser) {
-          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vehicle details saved successfully')),
-          );
-          Navigator.pop(context);
-        },
-        onFailure: (failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
-        },
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: AppDimensions.lg,
-        right: AppDimensions.lg,
-        top: AppDimensions.xl,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Manage Vehicle', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppDimensions.lg),
-          TextField(
-            controller: _makeController,
-            decoration: const InputDecoration(labelText: 'Make', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: AppDimensions.md),
-          TextField(
-            controller: _modelController,
-            decoration: const InputDecoration(labelText: 'Model', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: AppDimensions.md),
-          TextField(
-            controller: _yearController,
-            decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: AppDimensions.md),
-          TextField(
-            controller: _plateController,
-            decoration: const InputDecoration(labelText: 'Plate', border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: AppDimensions.xl),
-          SizedBox(
-            width: double.infinity,
-            child: FarchisButton(
-              label: 'Save Vehicle',
-              isLoading: _isLoading,
-              onPressed: _saveVehicle,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.xl),
-        ],
-      ),
-    );
-  }
-}

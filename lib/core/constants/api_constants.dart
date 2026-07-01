@@ -27,6 +27,7 @@ class ApiConstants {
   // Services
   static const String services = '/services';
   static String service(String id) => '/services/$id';
+  static String servicePrice(String id) => '/services/$id/price';
 
   // Payments
   static const String initiatePayment = '/payments/initiate';
@@ -64,8 +65,41 @@ class ApiConstants {
   static String markNotificationRead(String id) => '/notifications/$id/read';
   static const String markAllNotificationsRead = '/notifications/read-all';
 
-  // Vehicle
-  static const String updateVehicle = '/vehicle';
+  // Vehicles (dedicated multi-vehicle garage resource)
+  static const String vehicles = '/vehicles';
+  static String vehicle(String id) => '/vehicles/$id';
+  static String setPrimaryVehicle(String id) => '/vehicles/$id/set-primary';
+  static const String vehicleSizeCategories = '/vehicle-size-categories';
+
+  // Inspection Requests
+  static const String inspectionRequests = '/inspection-requests';
+  static String inspectionRequest(String id) => '/inspection-requests/$id';
+  static String acceptInspectionQuote(String id) => '/inspection-requests/$id/accept-quote';
+  static String declineInspectionRequest(String id) => '/inspection-requests/$id/decline';
+
+  // Chat / Conversations
+  static const String conversations = '/conversations';
+  static String conversationMessages(String id) => '/conversations/$id/messages';
+  static String markConversationRead(String id) => '/conversations/$id/read';
+
+  // Reverb/Pusher-protocol broadcasting auth for Sanctum-authenticated mobile
+  // clients (see routes/api.php on the backend — distinct from the default
+  // browser-facing /broadcasting/auth route).
+  static String get broadcastingAuthUrl => '$baseUrl/broadcasting/auth';
+
+  // Stripe
+  // Must match the backend's STRIPE_KEY (publishable key) in
+  // config/services.php / .env for PaymentSheet to work end-to-end.
+  static const String stripePublishableKey =
+      'pk_test_51RcPAL4Z4EqjbRzAe0hBy3i2PuV5OMTjKzBV02LP7Ob6LhPlQgf0CEk7P3vujWdMHXncpRyoLz6KNlCxjdjBHYax00a2l2uL7e';
+
+  // Reverb (self-hosted Laravel Reverb, Pusher-protocol). These match the
+  // backend's local .env defaults — update if the backend's REVERB_* values
+  // change (e.g. for staging/production).
+  static const String reverbAppKey = 'nbyp5jmovf6ooth7wcli';
+  static const String reverbHost = 'localhost';
+  static const int reverbPort = 8080;
+  static const String reverbScheme = 'http';
 
   // Timeouts
   static const Duration requestTimeout = Duration(seconds: 30);

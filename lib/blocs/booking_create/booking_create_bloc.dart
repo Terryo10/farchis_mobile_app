@@ -9,12 +9,23 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
 
   BookingCreateBloc(this.repository) : super(BookingCreateInitial()) {
     on<SelectService>((event, emit) {
-      emit(ServiceSelected(selectedService: event.service));
+      emit(ServiceSelected(
+        selectedService: event.service,
+        selectedVehicle: state.selectedVehicle,
+      ));
+    });
+
+    on<SelectVehicle>((event, emit) {
+      emit(ServiceSelected(
+        selectedService: state.selectedService,
+        selectedVehicle: event.vehicle,
+      ));
     });
 
     on<SelectDate>((event, emit) {
       emit(DateSelected(
         selectedService: state.selectedService,
+        selectedVehicle: state.selectedVehicle,
         selectedDate: event.date,
         selectedSlot: event.slot,
       ));
@@ -23,6 +34,7 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
     on<ProvideDetails>((event, emit) {
       emit(DetailsProvided(
         selectedService: state.selectedService,
+        selectedVehicle: state.selectedVehicle,
         selectedDate: state.selectedDate,
         selectedSlot: state.selectedSlot,
         photos: event.photos,
@@ -33,6 +45,7 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
     on<SubmitBooking>((event, emit) async {
       emit(BookingSubmitting(
         selectedService: state.selectedService,
+        selectedVehicle: state.selectedVehicle,
         selectedDate: state.selectedDate,
         selectedSlot: state.selectedSlot,
         photos: state.photos,
@@ -41,21 +54,30 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
 
       final payload = {
         'service_id': state.selectedService?.id,
+        'vehicle_id': state.selectedVehicle?.id,
         'booking_date': state.selectedDate != null
             ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
             : null,
         'booking_time': state.selectedSlot,
         'notes': state.notes,
-        'photos': state.photos,
       };
 
       final result = await repository.createBooking(payload);
 
       result.when(
-        onSuccess: (booking) => emit(BookingSuccess(booking)),
+        onSuccess: (booking) => emit(BookingSuccess(
+          booking,
+          selectedService: state.selectedService,
+          selectedVehicle: state.selectedVehicle,
+          selectedDate: state.selectedDate,
+          selectedSlot: state.selectedSlot,
+          photos: state.photos,
+          notes: state.notes,
+        )),
         onFailure: (failure) => emit(BookingFailure(
           failure,
           selectedService: state.selectedService,
+          selectedVehicle: state.selectedVehicle,
           selectedDate: state.selectedDate,
           selectedSlot: state.selectedSlot,
           photos: state.photos,
@@ -63,5 +85,7 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
         )),
       );
     });
+
+    on<ResetBookingCreate>((event, emit) => emit(BookingCreateInitial()));
   }
 }

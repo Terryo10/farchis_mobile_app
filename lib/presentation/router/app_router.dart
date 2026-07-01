@@ -23,6 +23,11 @@ import '../screens/profile/my_vehicles_screen.dart';
 import '../screens/profile/payment_methods_screen.dart';
 import '../screens/profile/notification_prefs_screen.dart';
 import '../screens/profile/help_support_screen.dart';
+import '../screens/inspection/inspection_request_form_screen.dart';
+import '../screens/inspection/inspection_request_list_screen.dart';
+import '../screens/inspection/inspection_request_detail_screen.dart';
+import '../screens/chat/conversations_screen.dart';
+import '../screens/chat/chat_thread_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -56,8 +61,13 @@ class AppRouter extends RootStackRouter {
         AutoRoute(page: PersonalInfoRoute.page, guards: [authGuard]),
         AutoRoute(page: MyVehiclesRoute.page, guards: [authGuard]),
         AutoRoute(page: PaymentMethodsRoute.page, guards: [authGuard]),
-        AutoRoute(page: NotificationsRoute.page, guards: [authGuard]),
+        AutoRoute(page: NotificationPrefsRoute.page, guards: [authGuard]),
         AutoRoute(page: HelpSupportRoute.page),
+        AutoRoute(page: InspectionRequestFormRoute.page, guards: [authGuard]),
+        AutoRoute(page: InspectionRequestListRoute.page, guards: [authGuard]),
+        AutoRoute(page: InspectionRequestDetailRoute.page, guards: [authGuard]),
+        AutoRoute(page: ConversationsRoute.page, guards: [authGuard]),
+        AutoRoute(page: ChatThreadRoute.page, guards: [authGuard]),
 
       ];
 

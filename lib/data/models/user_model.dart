@@ -16,10 +16,6 @@ class UserModel {
   final String? referralCode;
   final LoyaltyTier? loyaltyTier;
   final int? loyaltyPoints;
-  final String? vehicleMake;
-  final String? vehicleModel;
-  final int? vehicleYear;
-  final String? vehiclePlate;
   final DateTime? lastServiceDate;
 
   const UserModel({
@@ -31,10 +27,6 @@ class UserModel {
     this.referralCode,
     this.loyaltyTier,
     this.loyaltyPoints,
-    this.vehicleMake,
-    this.vehicleModel,
-    this.vehicleYear,
-    this.vehiclePlate,
     this.lastServiceDate,
   });
 
@@ -51,10 +43,6 @@ class UserModel {
     String? referralCode,
     LoyaltyTier? loyaltyTier,
     int? loyaltyPoints,
-    String? vehicleMake,
-    String? vehicleModel,
-    int? vehicleYear,
-    String? vehiclePlate,
     DateTime? lastServiceDate,
   }) {
     return UserModel(
@@ -66,10 +54,6 @@ class UserModel {
       referralCode: referralCode ?? this.referralCode,
       loyaltyTier: loyaltyTier ?? this.loyaltyTier,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
-      vehicleMake: vehicleMake ?? this.vehicleMake,
-      vehicleModel: vehicleModel ?? this.vehicleModel,
-      vehicleYear: vehicleYear ?? this.vehicleYear,
-      vehiclePlate: vehiclePlate ?? this.vehiclePlate,
       lastServiceDate: lastServiceDate ?? this.lastServiceDate,
     );
   }
