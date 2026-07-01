@@ -49,56 +49,56 @@ class MainLayoutScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
-            children: [
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isSelected: tabsRouter.activeIndex == 0,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    tabsRouter.setActiveIndex(0);
-                  },
-                ),
+          children: [
+            Expanded(
+              child: _NavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                isSelected: tabsRouter.activeIndex == 0,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  tabsRouter.setActiveIndex(0);
+                },
               ),
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.calendar_month_rounded,
-                  label: 'Bookings',
-                  isSelected: tabsRouter.activeIndex == 1,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    tabsRouter.setActiveIndex(1);
-                  },
-                ),
+            ),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.calendar_month_rounded,
+                label: 'Booking',
+                isSelected: tabsRouter.activeIndex == 1,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  tabsRouter.setActiveIndex(1);
+                },
               ),
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.stars_rounded,
-                  label: 'Rewards',
-                  isSelected: tabsRouter.activeIndex == 2,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    tabsRouter.setActiveIndex(2);
-                  },
-                ),
+            ),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.stars_rounded,
+                label: 'Rewards',
+                isSelected: tabsRouter.activeIndex == 2,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  tabsRouter.setActiveIndex(2);
+                },
               ),
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.person_rounded,
-                  label: 'Account',
-                  isSelected: tabsRouter.activeIndex == 3,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    tabsRouter.setActiveIndex(3);
-                  },
-                ),
+            ),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.person_rounded,
+                label: 'Account',
+                isSelected: tabsRouter.activeIndex == 3,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  tabsRouter.setActiveIndex(3);
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {
@@ -138,18 +138,14 @@ class _NavItem extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: isSelected
-                    ? AppColors.white
-                    : const Color(0xFF8FA3BF),
+                color: isSelected ? AppColors.white : const Color(0xFF8FA3BF),
                 size: 22,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected
-                      ? AppColors.white
-                      : const Color(0xFF8FA3BF),
+                  color: isSelected ? AppColors.white : const Color(0xFF8FA3BF),
                   fontWeight: FontWeight.w600,
                   fontSize: 11,
                 ),
@@ -161,4 +157,3 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
-
