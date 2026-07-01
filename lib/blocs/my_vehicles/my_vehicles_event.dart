@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import '../../data/models/vehicle_model.dart';
 
 sealed class MyVehiclesEvent extends Equatable {
   const MyVehiclesEvent();
@@ -12,22 +11,30 @@ class LoadVehicles extends MyVehiclesEvent {
 }
 
 class AddVehicle extends MyVehiclesEvent {
-  final VehicleModel vehicle;
-  const AddVehicle(this.vehicle);
+  final Map<String, dynamic> payload;
+  const AddVehicle(this.payload);
   @override
-  List<Object?> get props => [vehicle];
+  List<Object?> get props => [payload];
 }
 
 class UpdateVehicle extends MyVehiclesEvent {
-  final VehicleModel vehicle;
-  const UpdateVehicle(this.vehicle);
+  final int id;
+  final Map<String, dynamic> payload;
+  const UpdateVehicle(this.id, this.payload);
   @override
-  List<Object?> get props => [vehicle];
+  List<Object?> get props => [id, payload];
 }
 
 class DeleteVehicle extends MyVehiclesEvent {
-  final String id;
+  final int id;
   const DeleteVehicle(this.id);
+  @override
+  List<Object?> get props => [id];
+}
+
+class SetPrimaryVehicle extends MyVehiclesEvent {
+  final int id;
+  const SetPrimaryVehicle(this.id);
   @override
   List<Object?> get props => [id];
 }

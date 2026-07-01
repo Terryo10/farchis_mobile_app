@@ -2,10 +2,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../network/http_client.dart';
+import '../services/pusher_service.dart';
 import '../../data/repositories/article_repository.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../data/repositories/chat_repository.dart';
 import '../../data/repositories/gallery_repository.dart';
+import '../../data/repositories/inspection_request_repository.dart';
 import '../../data/repositories/loyalty_repository.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../../data/repositories/payment_repository.dart';
@@ -21,6 +24,8 @@ import '../../data/providers/local_payment_provider.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/booking/booking_bloc.dart';
 import '../../blocs/booking_create/booking_create_bloc.dart';
+import '../../blocs/chat/conversations_bloc.dart';
+import '../../blocs/inspection_request/inspection_request_bloc.dart';
 import '../../blocs/loyalty/loyalty_bloc.dart';
 import '../../blocs/maps/maps_bloc.dart';
 import '../../blocs/services/services_bloc.dart';
@@ -41,12 +46,15 @@ class Injection {
   static late final FlutterSecureStorage secureStorage;
   static late final SharedPreferences sharedPreferences;
   static late final FarchisHttpClient httpClient;
+  static late final PusherService pusherService;
 
   // Repositories
   static late final ArticleRepository articleRepository;
   static late final AuthRepository authRepository;
   static late final BookingRepository bookingRepository;
+  static late final ChatRepository chatRepository;
   static late final GalleryRepository galleryRepository;
+  static late final InspectionRequestRepository inspectionRequestRepository;
   static late final LoyaltyRepository loyaltyRepository;
   static late final NotificationRepository notificationRepository;
   static late final PaymentRepository paymentRepository;
@@ -62,6 +70,8 @@ class Injection {
   static late final AuthBloc _authBloc;
   static late final BookingBloc _bookingBloc;
   static late final BookingCreateBloc _bookingCreateBloc;
+  static late final ConversationsBloc _conversationsBloc;
+  static late final InspectionRequestBloc _inspectionRequestBloc;
   static late final LoyaltyBloc _loyaltyBloc;
   static late final MapsBloc _mapsBloc;
   static late final ServicesBloc _servicesBloc;
@@ -80,12 +90,15 @@ class Injection {
     secureStorage = const FlutterSecureStorage();
     sharedPreferences = await SharedPreferences.getInstance();
     httpClient = FarchisHttpClient(secureStorage);
+    pusherService = PusherService(secureStorage);
 
     // Init Repositories
     articleRepository = ArticleRepository(httpClient);
     authRepository = AuthRepository(httpClient);
     bookingRepository = BookingRepository(httpClient);
+    chatRepository = ChatRepository(httpClient);
     galleryRepository = GalleryRepository(httpClient);
+    inspectionRequestRepository = InspectionRequestRepository(httpClient);
     loyaltyRepository = LoyaltyRepository(httpClient);
     notificationRepository = NotificationRepository(httpClient);
     paymentRepository = PaymentRepository(httpClient);
@@ -101,8 +114,10 @@ class Injection {
     _authBloc = AuthBloc(authRepository: authRepository, secureStorage: secureStorage);
     _bookingBloc = BookingBloc(bookingRepository);
     _bookingCreateBloc = BookingCreateBloc(bookingRepository);
+    _conversationsBloc = ConversationsBloc(repository: chatRepository);
+    _inspectionRequestBloc = InspectionRequestBloc(repository: inspectionRequestRepository);
     _loyaltyBloc = LoyaltyBloc(loyaltyRepository: loyaltyRepository);
-    _mapsBloc = MapsBloc(); 
+    _mapsBloc = MapsBloc();
     _servicesBloc = ServicesBloc(serviceRepository: serviceRepository);
     _themeCubit = ThemeCubit(sharedPreferences);
     _promotionBloc = PromotionBloc(promotionRepository: promotionRepository);
@@ -111,7 +126,7 @@ class Injection {
     _referralBloc = ReferralBloc(referralRepository: referralRepository);
     _notificationBloc = NotificationBloc(notificationRepository: notificationRepository);
     _personalInfoBloc = PersonalInfoBloc(authRepository: authRepository, authBloc: _authBloc);
-    _myVehiclesBloc = MyVehiclesBloc(authBloc: _authBloc);
+    _myVehiclesBloc = MyVehiclesBloc(repository: vehicleRepository);
     _paymentMethodsBloc = PaymentMethodsBloc(paymentProvider: paymentProvider);
     _notificationPrefsBloc = NotificationPrefsBloc(prefs: sharedPreferences);
   }
@@ -119,6 +134,8 @@ class Injection {
   static AuthBloc get authBloc => _authBloc;
   static BookingBloc get bookingBloc => _bookingBloc;
   static BookingCreateBloc get bookingCreateBloc => _bookingCreateBloc;
+  static ConversationsBloc get conversationsBloc => _conversationsBloc;
+  static InspectionRequestBloc get inspectionRequestBloc => _inspectionRequestBloc;
   static LoyaltyBloc get loyaltyBloc => _loyaltyBloc;
   static MapsBloc get mapsBloc => _mapsBloc;
   static ServicesBloc get servicesBloc => _servicesBloc;

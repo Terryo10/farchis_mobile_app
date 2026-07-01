@@ -27,6 +27,72 @@ class BookingListRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ChatThreadScreen]
+class ChatThreadRoute extends PageRouteInfo<ChatThreadRouteArgs> {
+  ChatThreadRoute({
+    Key? key,
+    required int conversationId,
+    List<PageRouteInfo>? children,
+  }) : super(
+         ChatThreadRoute.name,
+         args: ChatThreadRouteArgs(key: key, conversationId: conversationId),
+         initialChildren: children,
+       );
+
+  static const String name = 'ChatThreadRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<ChatThreadRouteArgs>();
+      return ChatThreadScreen(
+        key: args.key,
+        conversationId: args.conversationId,
+      );
+    },
+  );
+}
+
+class ChatThreadRouteArgs {
+  const ChatThreadRouteArgs({this.key, required this.conversationId});
+
+  final Key? key;
+
+  final int conversationId;
+
+  @override
+  String toString() {
+    return 'ChatThreadRouteArgs{key: $key, conversationId: $conversationId}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ChatThreadRouteArgs) return false;
+    return key == other.key && conversationId == other.conversationId;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ conversationId.hashCode;
+}
+
+/// generated route for
+/// [ConversationsScreen]
+class ConversationsRoute extends PageRouteInfo<void> {
+  const ConversationsRoute({List<PageRouteInfo>? children})
+    : super(ConversationsRoute.name, initialChildren: children);
+
+  static const String name = 'ConversationsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ConversationsScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [CreateBookingScreen]
 class CreateBookingRoute extends PageRouteInfo<void> {
   const CreateBookingRoute({List<PageRouteInfo>? children})
@@ -112,6 +178,22 @@ class GalleryRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [HelpSupportScreen]
+class HelpSupportRoute extends PageRouteInfo<void> {
+  const HelpSupportRoute({List<PageRouteInfo>? children})
+    : super(HelpSupportRoute.name, initialChildren: children);
+
+  static const String name = 'HelpSupportRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const HelpSupportScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [HomeScreen]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})
@@ -123,6 +205,86 @@ class HomeRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const HomeScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [InspectionRequestDetailScreen]
+class InspectionRequestDetailRoute
+    extends PageRouteInfo<InspectionRequestDetailRouteArgs> {
+  InspectionRequestDetailRoute({
+    Key? key,
+    required int id,
+    List<PageRouteInfo>? children,
+  }) : super(
+         InspectionRequestDetailRoute.name,
+         args: InspectionRequestDetailRouteArgs(key: key, id: id),
+         initialChildren: children,
+       );
+
+  static const String name = 'InspectionRequestDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<InspectionRequestDetailRouteArgs>();
+      return InspectionRequestDetailScreen(key: args.key, id: args.id);
+    },
+  );
+}
+
+class InspectionRequestDetailRouteArgs {
+  const InspectionRequestDetailRouteArgs({this.key, required this.id});
+
+  final Key? key;
+
+  final int id;
+
+  @override
+  String toString() {
+    return 'InspectionRequestDetailRouteArgs{key: $key, id: $id}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! InspectionRequestDetailRouteArgs) return false;
+    return key == other.key && id == other.id;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ id.hashCode;
+}
+
+/// generated route for
+/// [InspectionRequestFormScreen]
+class InspectionRequestFormRoute extends PageRouteInfo<void> {
+  const InspectionRequestFormRoute({List<PageRouteInfo>? children})
+    : super(InspectionRequestFormRoute.name, initialChildren: children);
+
+  static const String name = 'InspectionRequestFormRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const InspectionRequestFormScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [InspectionRequestListScreen]
+class InspectionRequestListRoute extends PageRouteInfo<void> {
+  const InspectionRequestListRoute({List<PageRouteInfo>? children})
+    : super(InspectionRequestListRoute.name, initialChildren: children);
+
+  static const String name = 'InspectionRequestListRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const InspectionRequestListScreen();
     },
   );
 }
@@ -223,6 +385,22 @@ class MainLayoutRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [MyVehiclesScreen]
+class MyVehiclesRoute extends PageRouteInfo<void> {
+  const MyVehiclesRoute({List<PageRouteInfo>? children})
+    : super(MyVehiclesRoute.name, initialChildren: children);
+
+  static const String name = 'MyVehiclesRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MyVehiclesScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [NotificationListScreen]
 class NotificationListRoute extends PageRouteInfo<void> {
   const NotificationListRoute({List<PageRouteInfo>? children})
@@ -234,6 +412,54 @@ class NotificationListRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const NotificationListScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [NotificationPrefsScreen]
+class NotificationPrefsRoute extends PageRouteInfo<void> {
+  const NotificationPrefsRoute({List<PageRouteInfo>? children})
+    : super(NotificationPrefsRoute.name, initialChildren: children);
+
+  static const String name = 'NotificationPrefsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const NotificationPrefsScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [PaymentMethodsScreen]
+class PaymentMethodsRoute extends PageRouteInfo<void> {
+  const PaymentMethodsRoute({List<PageRouteInfo>? children})
+    : super(PaymentMethodsRoute.name, initialChildren: children);
+
+  static const String name = 'PaymentMethodsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PaymentMethodsScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [PersonalInfoScreen]
+class PersonalInfoRoute extends PageRouteInfo<void> {
+  const PersonalInfoRoute({List<PageRouteInfo>? children})
+    : super(PersonalInfoRoute.name, initialChildren: children);
+
+  static const String name = 'PersonalInfoRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PersonalInfoScreen();
     },
   );
 }
@@ -314,86 +540,6 @@ class SplashRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const SplashScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [PersonalInfoScreen]
-class PersonalInfoRoute extends PageRouteInfo<void> {
-  const PersonalInfoRoute({List<PageRouteInfo>? children})
-    : super(PersonalInfoRoute.name, initialChildren: children);
-
-  static const String name = 'PersonalInfoRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const PersonalInfoScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [MyVehiclesScreen]
-class MyVehiclesRoute extends PageRouteInfo<void> {
-  const MyVehiclesRoute({List<PageRouteInfo>? children})
-    : super(MyVehiclesRoute.name, initialChildren: children);
-
-  static const String name = 'MyVehiclesRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const MyVehiclesScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [PaymentMethodsScreen]
-class PaymentMethodsRoute extends PageRouteInfo<void> {
-  const PaymentMethodsRoute({List<PageRouteInfo>? children})
-    : super(PaymentMethodsRoute.name, initialChildren: children);
-
-  static const String name = 'PaymentMethodsRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const PaymentMethodsScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [NotificationPrefsScreen]
-class NotificationsRoute extends PageRouteInfo<void> {
-  const NotificationsRoute({List<PageRouteInfo>? children})
-    : super(NotificationsRoute.name, initialChildren: children);
-
-  static const String name = 'NotificationsRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const NotificationPrefsScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [HelpSupportScreen]
-class HelpSupportRoute extends PageRouteInfo<void> {
-  const HelpSupportRoute({List<PageRouteInfo>? children})
-    : super(HelpSupportRoute.name, initialChildren: children);
-
-  static const String name = 'HelpSupportRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const HelpSupportScreen();
     },
   );
 }

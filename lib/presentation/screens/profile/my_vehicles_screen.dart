@@ -37,8 +37,20 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         title: const Text('My Vehicles'),
         elevation: 0,
       ),
-      body: BlocBuilder<MyVehiclesBloc, MyVehiclesState>(
+      body: BlocConsumer<MyVehiclesBloc, MyVehiclesState>(
+        listener: (context, state) {
+          final failure = state.failure;
+          if (failure != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(failure.message)),
+            );
+          }
+        },
         builder: (context, state) {
+          if (state.isLoading && state.vehicles.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
           if (state.vehicles.isEmpty) {
             return _buildEmptyState(context, theme, isDark);
           }
@@ -46,7 +58,7 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(AppDimensions.lg),
             itemCount: state.vehicles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.md),
+            separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.md),
             itemBuilder: (context, index) {
               final vehicle = state.vehicles[index];
               return _VehicleCard(
@@ -56,6 +68,9 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
                 onDelete: () => context
                     .read<MyVehiclesBloc>()
                     .add(DeleteVehicle(vehicle.id)),
+                onSetPrimary: () => context
+                    .read<MyVehiclesBloc>()
+                    .add(SetPrimaryVehicle(vehicle.id)),
               );
             },
           );
@@ -138,12 +153,14 @@ class _VehicleCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onSetPrimary;
 
   const _VehicleCard({
     required this.vehicle,
     required this.isDark,
     required this.onEdit,
     required this.onDelete,
+    required this.onSetPrimary,
   });
 
   @override
@@ -151,7 +168,7 @@ class _VehicleCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Dismissible(
-      key: Key(vehicle.id),
+      key: Key('vehicle_${vehicle.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -191,7 +208,10 @@ class _VehicleCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppDimensions.lg),
             decoration: BoxDecoration(
               border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                color: vehicle.isPrimary
+                    ? (isDark ? AppColors.navyLight : AppColors.navyPrimary)
+                    : theme.colorScheme.outline.withValues(alpha: 0.3),
+                width: vehicle.isPrimary ? 1.5 : 1,
               ),
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             ),
@@ -215,18 +235,42 @@ class _VehicleCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${vehicle.make} ${vehicle.model}'.trim().isEmpty
-                            ? 'Vehicle'
-                            : '${vehicle.make} ${vehicle.model}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              vehicle.displayName.isEmpty ? 'Vehicle' : vehicle.displayName,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (vehicle.isPrimary) ...[
+                            const SizedBox(width: AppDimensions.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (isDark ? AppColors.navyLight : AppColors.navyPrimary)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(AppDimensions.radiusCircle),
+                              ),
+                              child: Text(
+                                'Primary',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: isDark ? AppColors.navyLight : AppColors.navyPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
                         [
-                          if (vehicle.regNumber.isNotEmpty) vehicle.regNumber,
-                          if (vehicle.color.isNotEmpty) vehicle.color,
+                          if ((vehicle.plate ?? '').isNotEmpty) vehicle.plate!,
+                          if ((vehicle.color ?? '').isNotEmpty) vehicle.color!,
+                          if (vehicle.vehicleSizeCategory != null) vehicle.vehicleSizeCategory!.name,
                         ].join(' · '),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -235,9 +279,46 @@ class _VehicleCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'primary') onSetPrimary();
+                    if (value == 'edit') onEdit();
+                    if (value == 'delete') onDelete();
+                  },
+                  itemBuilder: (_) => [
+                    if (!vehicle.isPrimary)
+                      const PopupMenuItem(
+                        value: 'primary',
+                        child: ListTile(
+                          leading: Icon(Icons.star_outline_rounded),
+                          title: Text('Set as Primary'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                        ),
+                      ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('Edit'),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline_rounded, color: AppColors.lightError),
+                        title: Text('Remove', style: TextStyle(color: AppColors.lightError)),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -260,29 +341,34 @@ class _VehicleFormSheet extends StatefulWidget {
 }
 
 class _VehicleFormSheetState extends State<_VehicleFormSheet> {
-  final _regController = TextEditingController();
+  final _plateController = TextEditingController();
   final _makeController = TextEditingController();
   final _modelController = TextEditingController();
+  final _yearController = TextEditingController();
   final _colorController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  int? _sizeCategoryId;
 
   @override
   void initState() {
     super.initState();
     final v = widget.vehicle;
     if (v != null) {
-      _regController.text = v.regNumber;
+      _plateController.text = v.plate ?? '';
       _makeController.text = v.make;
       _modelController.text = v.model;
-      _colorController.text = v.color;
+      _yearController.text = v.year?.toString() ?? '';
+      _colorController.text = v.color ?? '';
+      _sizeCategoryId = v.vehicleSizeCategoryId;
     }
   }
 
   @override
   void dispose() {
-    _regController.dispose();
+    _plateController.dispose();
     _makeController.dispose();
     _modelController.dispose();
+    _yearController.dispose();
     _colorController.dispose();
     super.dispose();
   }
@@ -290,19 +376,19 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final vehicle = VehicleModel(
-      id: widget.vehicle?.id ??
-          DateTime.now().millisecondsSinceEpoch.toString(),
-      regNumber: _regController.text.trim(),
-      make: _makeController.text.trim(),
-      model: _modelController.text.trim(),
-      color: _colorController.text.trim(),
-    );
+    final payload = <String, dynamic>{
+      'make': _makeController.text.trim(),
+      'model': _modelController.text.trim(),
+      'year': _yearController.text.trim().isEmpty ? null : int.tryParse(_yearController.text.trim()),
+      'plate': _plateController.text.trim().isEmpty ? null : _plateController.text.trim(),
+      'color': _colorController.text.trim().isEmpty ? null : _colorController.text.trim(),
+      'vehicle_size_category_id': _sizeCategoryId,
+    };
 
     if (widget.vehicle == null) {
-      context.read<MyVehiclesBloc>().add(AddVehicle(vehicle));
+      context.read<MyVehiclesBloc>().add(AddVehicle(payload));
     } else {
-      context.read<MyVehiclesBloc>().add(UpdateVehicle(vehicle));
+      context.read<MyVehiclesBloc>().add(UpdateVehicle(widget.vehicle!.id, payload));
     }
 
     Navigator.pop(context);
@@ -312,6 +398,7 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEdit = widget.vehicle != null;
+    final sizeCategories = context.watch<MyVehiclesBloc>().state.sizeCategories;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -322,84 +409,108 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
       ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppDimensions.lg),
-            Text(
-              isEdit ? 'Edit Vehicle' : 'Add Vehicle',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: AppDimensions.lg),
-            _SheetField(
-              controller: _regController,
-              label: 'Registration Number',
-              hint: 'e.g. ABC 1234',
-              textCapitalization: TextCapitalization.characters,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Reg number required' : null,
-            ),
-            const SizedBox(height: AppDimensions.md),
-            _SheetField(
-              controller: _makeController,
-              label: 'Make',
-              hint: 'e.g. Toyota',
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Make is required' : null,
-            ),
-            const SizedBox(height: AppDimensions.md),
-            _SheetField(
-              controller: _modelController,
-              label: 'Model',
-              hint: 'e.g. Corolla',
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Model is required' : null,
-            ),
-            const SizedBox(height: AppDimensions.md),
-            _SheetField(
-              controller: _colorController,
-              label: 'Colour',
-              hint: 'e.g. Silver',
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: AppDimensions.xl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.navyPrimary,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusMd),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                child: Text(
-                  isEdit ? 'Save Changes' : 'Add Vehicle',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+              Text(
+                isEdit ? 'Edit Vehicle' : 'Add Vehicle',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+              _SheetField(
+                controller: _makeController,
+                label: 'Make',
+                hint: 'e.g. Toyota',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Make is required' : null,
+              ),
+              const SizedBox(height: AppDimensions.md),
+              _SheetField(
+                controller: _modelController,
+                label: 'Model',
+                hint: 'e.g. Corolla',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Model is required' : null,
+              ),
+              const SizedBox(height: AppDimensions.md),
+              _SheetField(
+                controller: _yearController,
+                label: 'Year',
+                hint: 'e.g. 2020',
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: AppDimensions.md),
+              _SheetField(
+                controller: _plateController,
+                label: 'Registration Number',
+                hint: 'e.g. ABC 1234',
+                textCapitalization: TextCapitalization.characters,
+              ),
+              const SizedBox(height: AppDimensions.md),
+              _SheetField(
+                controller: _colorController,
+                label: 'Colour',
+                hint: 'e.g. Silver',
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: AppDimensions.md),
+              DropdownButtonFormField<int>(
+                initialValue: _sizeCategoryId,
+                decoration: const InputDecoration(
+                  labelText: 'Vehicle Size',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: AppDimensions.md,
+                    vertical: AppDimensions.md,
+                  ),
+                ),
+                hint: const Text('Select size category'),
+                items: sizeCategories
+                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                    .toList(),
+                onChanged: (value) => setState(() => _sizeCategoryId = value),
+              ),
+              const SizedBox(height: AppDimensions.xl),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.navyPrimary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppDimensions.radiusMd),
+                    ),
+                  ),
+                  child: Text(
+                    isEdit ? 'Save Changes' : 'Add Vehicle',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppDimensions.xl),
-          ],
+              const SizedBox(height: AppDimensions.xl),
+            ],
+          ),
         ),
       ),
     );
@@ -412,6 +523,7 @@ class _SheetField extends StatelessWidget {
   final String? hint;
   final String? Function(String?)? validator;
   final TextCapitalization textCapitalization;
+  final TextInputType? keyboardType;
 
   const _SheetField({
     required this.controller,
@@ -419,6 +531,7 @@ class _SheetField extends StatelessWidget {
     this.hint,
     this.validator,
     this.textCapitalization = TextCapitalization.none,
+    this.keyboardType,
   });
 
   @override
@@ -426,6 +539,7 @@ class _SheetField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       textCapitalization: textCapitalization,
+      keyboardType: keyboardType,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,

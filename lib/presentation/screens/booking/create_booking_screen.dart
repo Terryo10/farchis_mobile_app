@@ -1,11 +1,12 @@
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/widgets/farchis_button.dart';
+import '../../../core/widgets/farchis_info_banner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/theme/theme_cubit.dart';
 import '../../../blocs/services/services_bloc.dart';
@@ -14,8 +15,15 @@ import '../../../blocs/services/services_event.dart';
 import '../../../blocs/booking_create/booking_create_bloc.dart';
 import '../../../blocs/booking_create/booking_create_event.dart';
 import '../../../blocs/booking_create/booking_create_state.dart';
+import '../../../blocs/my_vehicles/my_vehicles_bloc.dart';
+import '../../../blocs/my_vehicles/my_vehicles_event.dart';
+import '../../../blocs/my_vehicles/my_vehicles_state.dart';
+import '../../../data/models/booking_model.dart';
 import '../../../data/models/service_model.dart';
+import '../../../data/models/vehicle_model.dart';
 import '../../../data/repositories/booking_repository.dart';
+import '../../../data/repositories/payment_repository.dart';
+import '../../../data/repositories/service_repository.dart';
 
 @RoutePage()
 class CreateBookingScreen extends StatefulWidget {
@@ -29,15 +37,28 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     with TickerProviderStateMixin {
   int _currentStep = 0;
   int _selectedServiceIndex = -1;
+  VehicleModel? _selectedVehicle;
   DateTime? _selectedDate;
   String? _selectedSlot;
   List<String> _availableSlots = [];
   bool _loadingSlots = false;
 
+  // Server-resolved price (Step 3: Confirm)
+  double? _resolvedPrice;
+  bool _priceLoading = false;
+
+  // Payment (Step 4)
+  bool _isProcessingPayment = false;
+
   late final PageController _pageController;
   late final AnimationController _fadeController;
 
-  static const _stepLabels = ['Select Service', 'Choose Date', 'Confirm'];
+  static const _stepLabels = [
+    'Select Service',
+    'Choose Date',
+    'Confirm',
+    'Payment',
+  ];
 
   String _formatSlotLabel(String slot24) {
     final parsed = DateFormat('HH:mm').parse(slot24);
@@ -51,9 +72,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
       _availableSlots = [];
     });
 
-    final result = await context
-        .read<BookingRepository>()
-        .getAvailableSlots(DateFormat('yyyy-MM-dd').format(date));
+    final result = await context.read<BookingRepository>().getAvailableSlots(
+      DateFormat('yyyy-MM-dd').format(date),
+    );
 
     if (!mounted) return;
 
@@ -73,6 +94,17 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
   void initState() {
     super.initState();
     context.read<ServicesBloc>().add(const GetServicesEvent());
+    final vehiclesState = context.read<MyVehiclesBloc>().state;
+    if (vehiclesState.vehicles.isEmpty && !vehiclesState.isLoading) {
+      context.read<MyVehiclesBloc>().add(const LoadVehicles());
+    } else {
+      for (final v in vehiclesState.vehicles) {
+        if (v.isPrimary) {
+          _selectedVehicle = v;
+          break;
+        }
+      }
+    }
     _pageController = PageController();
     _fadeController = AnimationController(
       vsync: this,
@@ -88,7 +120,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
   }
 
   void _goToStep(int step) {
-    if (step < 0 || step > 2) return;
+    if (step < 0 || step > 3) return;
     setState(() => _currentStep = step);
     _pageController.animateToPage(
       step,
@@ -97,6 +129,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     );
     _fadeController.reset();
     _fadeController.forward();
+
+    if (step == 2) {
+      _resolvePrice();
+    }
   }
 
   bool get _canProceed {
@@ -108,6 +144,113 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
       default:
         return true;
     }
+  }
+
+  ServiceModel? get _currentSelectedService {
+    if (_selectedServiceIndex < 0) return null;
+    final state = context.read<ServicesBloc>().state;
+    if (state is ServicesLoaded &&
+        _selectedServiceIndex < state.services.length) {
+      return state.services[_selectedServiceIndex];
+    }
+    return null;
+  }
+
+  Future<void> _resolvePrice() async {
+    final service = _currentSelectedService;
+    if (service == null) return;
+
+    setState(() {
+      _priceLoading = true;
+      _resolvedPrice = null;
+    });
+
+    final result = await context.read<ServiceRepository>().getPrice(
+      service.id,
+      _selectedVehicle?.id,
+    );
+
+    if (!mounted) return;
+
+    result.when(
+      onSuccess: (price) => setState(() {
+        _resolvedPrice = price;
+        _priceLoading = false;
+      }),
+      onFailure: (_) => setState(() {
+        // Fall back to the service's base list price if the price endpoint
+        // fails — better to show an estimate than nothing.
+        _resolvedPrice = service.price;
+        _priceLoading = false;
+      }),
+    );
+  }
+
+  Future<void> _payWithStripe(BookingModel booking) async {
+    setState(() => _isProcessingPayment = true);
+
+    final result = await context
+        .read<PaymentRepository>()
+        .initiateStripePayment(booking.id);
+
+    if (!mounted) return;
+
+    await result.when(
+      onSuccess: (intent) async {
+        try {
+          await stripe.Stripe.instance.initPaymentSheet(
+            paymentSheetParameters: stripe.SetupPaymentSheetParameters(
+              paymentIntentClientSecret: intent.clientSecret,
+              merchantDisplayName: 'Farchis Automotive',
+            ),
+          );
+          await stripe.Stripe.instance.presentPaymentSheet();
+
+          if (!mounted) return;
+          setState(() => _isProcessingPayment = false);
+          _completeBooking(message: 'Payment successful! Booking confirmed 🎉');
+        } on stripe.StripeException catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessingPayment = false);
+          final cancelled = e.error.code == stripe.FailureCode.Canceled;
+          if (!cancelled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.error.localizedMessage ?? 'Payment failed'),
+              ),
+            );
+          }
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessingPayment = false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
+        }
+      },
+      onFailure: (failure) async {
+        if (!mounted) return;
+        setState(() => _isProcessingPayment = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
+  }
+
+  void _payLater() {
+    _completeBooking(
+      message: 'Booking confirmed! Please settle payment at your appointment.',
+    );
+  }
+
+  void _completeBooking({required String message}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+    context.read<BookingCreateBloc>().add(ResetBookingCreate());
+    context.router.maybePop();
   }
 
   @override
@@ -166,6 +309,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                     _buildServiceStep(theme, isDark),
                     _buildDateStep(theme, isDark),
                     _buildConfirmStep(theme, isDark),
+                    _buildPaymentStep(theme, isDark),
                   ],
                 ),
               ),
@@ -211,7 +355,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
             const SizedBox(height: AppDimensions.xxl),
             BlocBuilder<ServicesBloc, ServicesState>(
               builder: (context, state) {
-                final isLoading = state is ServicesLoading || state is ServicesInitial;
+                final isLoading =
+                    state is ServicesLoading || state is ServicesInitial;
                 if (state is ServicesLoadFailed) {
                   return const Center(child: Text('Failed to load services'));
                 }
@@ -224,17 +369,20 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                   enabled: isLoading,
                   effect: ShimmerEffect(
                     baseColor: const Color(0xFF253971).withValues(alpha: 0.08),
-                    highlightColor: const Color(0xFF253971).withValues(alpha: 0.15),
+                    highlightColor: const Color(
+                      0xFF253971,
+                    ).withValues(alpha: 0.15),
                   ),
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppDimensions.lg,
-                      mainAxisSpacing: AppDimensions.lg,
-                      childAspectRatio: 0.80,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: AppDimensions.lg,
+                          mainAxisSpacing: AppDimensions.lg,
+                          childAspectRatio: 0.80,
+                        ),
                     itemCount: services.length,
                     itemBuilder: (context, index) {
                       final service = services[index];
@@ -246,11 +394,132 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         theme: theme,
                         onTap: () {
                           setState(() => _selectedServiceIndex = index);
-                          context.read<BookingCreateBloc>().add(SelectService(service));
+                          context.read<BookingCreateBloc>().add(
+                            SelectService(service),
+                          );
                         },
                       );
                     },
                   ),
+                );
+              },
+            ),
+            const SizedBox(height: AppDimensions.xxl),
+            Text(
+              'Which vehicle?',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.xs),
+            Text(
+              'Optional — helps us give you an accurate price',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.md),
+            BlocBuilder<MyVehiclesBloc, MyVehiclesState>(
+              builder: (context, state) {
+                if (state.vehicles.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(AppDimensions.md),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.navyDark
+                          : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMd,
+                      ),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.navyLight.withValues(alpha: 0.4)
+                            : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Text(
+                      'No saved vehicles — add one from My Garage for faster bookings.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                  );
+                }
+
+                return Wrap(
+                  spacing: AppDimensions.sm,
+                  runSpacing: AppDimensions.sm,
+                  children: state.vehicles.map((vehicle) {
+                    final isSelected = _selectedVehicle?.id == vehicle.id;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedVehicle = vehicle);
+                        context.read<BookingCreateBloc>().add(
+                          SelectVehicle(vehicle),
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimensions.lg,
+                          vertical: AppDimensions.md,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (isDark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.lightPrimary)
+                              : (isDark
+                                    ? AppColors.navyDark
+                                    : AppColors.lightSurface),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusMd,
+                          ),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.transparent
+                                : theme.colorScheme.outline,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.directions_car_rounded,
+                              size: 16,
+                              color: isSelected
+                                  ? (isDark
+                                        ? AppColors.darkOnPrimary
+                                        : AppColors.lightOnPrimary)
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.6,
+                                    ),
+                            ),
+                            const SizedBox(width: AppDimensions.sm - 2),
+                            Text(
+                              vehicle.displayName,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: isSelected
+                                    ? (isDark
+                                          ? AppColors.darkOnPrimary
+                                          : AppColors.lightOnPrimary)
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
@@ -309,12 +578,17 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                   color: isDark ? AppColors.navyDark : AppColors.lightSurface,
                   borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   border: Border.all(
-                    color: isDark ? AppColors.navyLight.withValues(alpha: 0.4) : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.navyLight.withValues(alpha: 0.4)
+                        : AppColors.lightBorder,
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today_rounded, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: AppDimensions.md),
                     Text(
                       _selectedDate == null
@@ -367,8 +641,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                     onTap: () {
                       setState(() => _selectedSlot = slot);
                       context.read<BookingCreateBloc>().add(
-                            SelectDate(date: _selectedDate!, slot: slot),
-                          );
+                        SelectDate(date: _selectedDate!, slot: slot),
+                      );
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -380,13 +654,14 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                       decoration: BoxDecoration(
                         color: isSelected
                             ? (isDark
-                                ? AppColors.darkPrimary
-                                : AppColors.lightPrimary)
+                                  ? AppColors.darkPrimary
+                                  : AppColors.lightPrimary)
                             : (isDark
-                                ? AppColors.navyDark
-                                : AppColors.lightSurface),
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusMd),
+                                  ? AppColors.navyDark
+                                  : AppColors.lightSurface),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusMd,
+                        ),
                         border: Border.all(
                           color: isSelected
                               ? Colors.transparent
@@ -398,11 +673,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: isSelected
                               ? (isDark
-                                  ? AppColors.darkOnPrimary
-                                  : AppColors.lightOnPrimary)
+                                    ? AppColors.darkOnPrimary
+                                    : AppColors.lightOnPrimary)
                               : theme.colorScheme.onSurface,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -417,7 +693,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
 
   // ======================== Step 3: Confirmation ========================
   Widget _buildConfirmStep(ThemeData theme, bool isDark) {
-    final service = _selectedServiceIndex >= 0 ? context.read<ServicesBloc>().state is ServicesLoaded ? (context.read<ServicesBloc>().state as ServicesLoaded).services[_selectedServiceIndex] : null : null;
+    final service = _selectedServiceIndex >= 0
+        ? context.read<ServicesBloc>().state is ServicesLoaded
+              ? (context.read<ServicesBloc>().state as ServicesLoaded)
+                    .services[_selectedServiceIndex]
+              : null
+        : null;
     final date = _selectedDate != null
         ? '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}'
         : 'Not selected';
@@ -458,10 +739,11 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
               width: double.infinity,
               decoration: BoxDecoration(
                 color: isDark ? AppColors.navyDark : AppColors.lightSurface,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusLg),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                 border: Border.all(
-                  color: isDark ? AppColors.navyLight.withValues(alpha: 0.4) : AppColors.lightBorder,
+                  color: isDark
+                      ? AppColors.navyLight.withValues(alpha: 0.4)
+                      : AppColors.lightBorder,
                 ),
                 boxShadow: [
                   if (!isDark)
@@ -491,7 +773,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         ),
                         child: Icon(
                           _getServiceIcon(service.slug, service.category),
-                          color: isDark ? FarchisColors.light : FarchisColors.navy,
+                          color: isDark
+                              ? FarchisColors.light
+                              : FarchisColors.navy,
                           size: AppDimensions.iconLg,
                         ),
                       ),
@@ -535,7 +819,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                     _ConfirmRow(
                       icon: Icons.directions_car_rounded,
                       label: 'Vehicle',
-                      value: 'BMW 320i • ABC-1234',
+                      value: _selectedVehicle != null
+                          ? '${_selectedVehicle!.displayName}${_selectedVehicle!.plate != null ? ' • ${_selectedVehicle!.plate}' : ''}'
+                          : 'Not selected',
                       theme: theme,
                       isDark: isDark,
                     ),
@@ -554,18 +840,35 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                             color: theme.colorScheme.onSurface,
                           ),
                         ),
-                        Text(
-                          service != null ? _formatPrice(service.price) : '\$0',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: AppColors.tierGold,
-                            fontWeight: FontWeight.w800,
+                        if (_priceLoading)
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          Text(
+                            _resolvedPrice != null
+                                ? _formatPrice(_resolvedPrice!)
+                                : (service != null
+                                      ? _formatPrice(service.price)
+                                      : '\$0'),
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: AppColors.tierGold,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: AppDimensions.xl),
+            const FarchisInfoBanner(
+              icon: Icons.access_time_rounded,
+              message:
+                  'Please arrive 20 minutes before your scheduled appointment time.',
             ),
           ],
         ),
@@ -573,7 +876,124 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
     );
   }
 
+  // ======================== Step 4: Payment ========================
+  Widget _buildPaymentStep(ThemeData theme, bool isDark) {
+    return FadeTransition(
+      opacity: _fadeController,
+      child: BlocBuilder<BookingCreateBloc, BookingCreateState>(
+        builder: (context, state) {
+          final booking = state is BookingSuccess ? state.booking : null;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.xxl,
+              AppDimensions.sm,
+              AppDimensions.xxl,
+              AppDimensions.xxl,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How would you like to pay?',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.xs),
+                Text(
+                  booking != null
+                      ? 'Booking #${booking.id} is confirmed — settle payment now or at your appointment.'
+                      : 'Preparing your booking…',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.xxl),
+                if (booking == null)
+                  const Center(child: CircularProgressIndicator())
+                else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppDimensions.xxl),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.navyDark
+                          : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusLg,
+                      ),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.navyLight.withValues(alpha: 0.4)
+                            : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total Due',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          _resolvedPrice != null
+                              ? _formatPrice(_resolvedPrice!)
+                              : '\$0',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: AppColors.tierGold,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.xl),
+                  FarchisButton(
+                    label: 'Pay Now with Card',
+                    size: ButtonSize.large,
+                    width: double.infinity,
+                    icon: const Icon(
+                      Icons.credit_card_rounded,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    isLoading: _isProcessingPayment,
+                    onPressed: () => _payWithStripe(booking),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  FarchisButton(
+                    label: 'Pay Later at Appointment',
+                    variant: ButtonVariant.secondary,
+                    size: ButtonSize.large,
+                    width: double.infinity,
+                    isEnabled: !_isProcessingPayment,
+                    onPressed: _payLater,
+                  ),
+                  const SizedBox(height: AppDimensions.xl),
+                  const FarchisInfoBanner(
+                    icon: Icons.access_time_rounded,
+                    message:
+                        'Please arrive 20 minutes before your scheduled appointment time.',
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildBottomBar(ThemeData theme, bool isDark) {
+    // Step 4 (Payment) owns its own action buttons within the scroll view.
+    if (_currentStep == 3) return const SizedBox.shrink();
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppDimensions.xxl,
@@ -585,7 +1005,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
         color: isDark ? AppColors.navyDark : AppColors.lightSurface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.navyLight.withValues(alpha: 0.3) : AppColors.lightBorder,
+            color: isDark
+                ? AppColors.navyLight.withValues(alpha: 0.3)
+                : AppColors.lightBorder,
           ),
         ),
       ),
@@ -607,15 +1029,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                 ? BlocConsumer<BookingCreateBloc, BookingCreateState>(
                     listener: (context, state) {
                       if (state is BookingSuccess) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Booking confirmed! 🎉'),
-                            backgroundColor: isDark
-                                ? AppColors.darkSuccess
-                                : AppColors.lightSuccess,
-                          ),
-                        );
-                        context.router.maybePop();
+                        _goToStep(3);
                       } else if (state is BookingFailure) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -633,13 +1047,16 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
                         label: 'Confirm Booking',
                         size: ButtonSize.large,
                         width: double.infinity,
-                        icon: const Icon(Icons.check_circle_outline_rounded,
-                            size: 20, color: Colors.white),
+                        icon: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
                         isEnabled: _canProceed,
                         isLoading: isSubmitting,
-                        onPressed: () => context
-                            .read<BookingCreateBloc>()
-                            .add(SubmitBooking()),
+                        onPressed: () => context.read<BookingCreateBloc>().add(
+                          SubmitBooking(),
+                        ),
                       );
                     },
                   )
@@ -655,19 +1072,19 @@ class _CreateBookingScreenState extends State<CreateBookingScreen>
       ),
     );
   }
-
 }
 
 IconData _getServiceIcon(String slug, ServiceCategory category) {
   final normalizedSlug = slug.toLowerCase();
-  
+
   if (normalizedSlug.contains('engine')) {
     return Icons.settings_suggest_rounded;
   } else if (normalizedSlug.contains('full-valet')) {
     return Icons.auto_awesome_rounded;
   } else if (normalizedSlug.contains('valet')) {
     return Icons.cleaning_services_rounded;
-  } else if (normalizedSlug.contains('quick-wash') || normalizedSlug.contains('wash')) {
+  } else if (normalizedSlug.contains('quick-wash') ||
+      normalizedSlug.contains('wash')) {
     return Icons.water_drop_rounded;
   } else if (normalizedSlug.contains('polish')) {
     return Icons.auto_fix_high_rounded;
@@ -675,13 +1092,18 @@ IconData _getServiceIcon(String slug, ServiceCategory category) {
     return Icons.light_mode_rounded;
   } else if (normalizedSlug.contains('interior')) {
     return Icons.cleaning_services_rounded;
-  } else if (normalizedSlug.contains('paint') || normalizedSlug.contains('spray')) {
+  } else if (normalizedSlug.contains('paint') ||
+      normalizedSlug.contains('spray')) {
     return Icons.format_paint_rounded;
-  } else if (normalizedSlug.contains('coating') || normalizedSlug.contains('ceramic')) {
+  } else if (normalizedSlug.contains('coating') ||
+      normalizedSlug.contains('ceramic')) {
     return Icons.shield_rounded;
-  } else if (normalizedSlug.contains('window') || normalizedSlug.contains('tint')) {
+  } else if (normalizedSlug.contains('window') ||
+      normalizedSlug.contains('tint')) {
     return Icons.window_rounded;
-  } else if (normalizedSlug.contains('scratch') || normalizedSlug.contains('dent') || normalizedSlug.contains('bodywork')) {
+  } else if (normalizedSlug.contains('scratch') ||
+      normalizedSlug.contains('dent') ||
+      normalizedSlug.contains('bodywork')) {
     return Icons.car_repair_rounded;
   }
 
@@ -709,14 +1131,14 @@ IconData _getServiceIcon(String slug, ServiceCategory category) {
 String _truncateDescription(String text) {
   const int maxLength = 55;
   if (text.length <= maxLength) return text;
-  
+
   final substring = text.substring(0, maxLength);
   final lastSpace = substring.lastIndexOf(' ');
-  
+
   if (lastSpace == -1) {
     return '$substring...';
   }
-  
+
   return '${substring.substring(0, lastSpace)}...';
 }
 
@@ -809,21 +1231,15 @@ class _StepDot extends StatelessWidget {
             color: isCompleted
                 ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
                 : isActive
-                    ? (isDark
-                        ? AppColors.darkPrimary
-                        : AppColors.lightPrimary)
-                    : Colors.transparent,
+                ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                : Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
               color: isCompleted
-                  ? (isDark
-                      ? AppColors.darkSuccess
-                      : AppColors.lightSuccess)
+                  ? (isDark ? AppColors.darkSuccess : AppColors.lightSuccess)
                   : isActive
-                      ? (isDark
-                          ? AppColors.darkPrimary
-                          : AppColors.lightPrimary)
-                      : theme.colorScheme.outline.withValues(alpha: 0.4),
+                  ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                  : theme.colorScheme.outline.withValues(alpha: 0.4),
               width: 2,
             ),
           ),
@@ -832,16 +1248,15 @@ class _StepDot extends StatelessWidget {
                 ? Icon(
                     Icons.check_rounded,
                     size: 16,
-                    color:
-                        isDark ? AppColors.darkOnPrimary : AppColors.white,
+                    color: isDark ? AppColors.darkOnPrimary : AppColors.white,
                   )
                 : Text(
                     '${index + 1}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: isActive
                           ? (isDark
-                              ? AppColors.darkOnPrimary
-                              : AppColors.lightOnPrimary)
+                                ? AppColors.darkOnPrimary
+                                : AppColors.lightOnPrimary)
                           : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w700,
                     ),
@@ -904,22 +1319,24 @@ class _ServiceCardState extends State<_ServiceCard> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: widget.isDark
-                ? AppColors.navyDark
-                : AppColors.lightSurface,
+            color: widget.isDark ? AppColors.navyDark : AppColors.lightSurface,
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(
               color: widget.isSelected
                   ? (widget.isDark ? FarchisColors.light : FarchisColors.navy)
                   : widget.isDark
-                      ? AppColors.navyLight.withValues(alpha: 0.4)
-                      : AppColors.lightBorder,
+                  ? AppColors.navyLight.withValues(alpha: 0.4)
+                  : AppColors.lightBorder,
               width: widget.isSelected ? 2 : 1,
             ),
             boxShadow: widget.isSelected
-              ? [
+                ? [
                     BoxShadow(
-                      color: (widget.isDark ? FarchisColors.light : FarchisColors.navy).withValues(alpha: 0.2),
+                      color:
+                          (widget.isDark
+                                  ? FarchisColors.light
+                                  : FarchisColors.navy)
+                              .withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -945,12 +1362,16 @@ class _ServiceCardState extends State<_ServiceCard> {
                     color: widget.isDark
                         ? FarchisColors.navy.withValues(alpha: 0.25)
                         : FarchisColors.light.withValues(alpha: 0.15),
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                   ),
                   child: Icon(
-                    _getServiceIcon(widget.service.slug, widget.service.category),
-                    color: widget.isDark ? FarchisColors.light : FarchisColors.navy,
+                    _getServiceIcon(
+                      widget.service.slug,
+                      widget.service.category,
+                    ),
+                    color: widget.isDark
+                        ? FarchisColors.light
+                        : FarchisColors.navy,
                     size: 28,
                   ),
                 ),
@@ -991,7 +1412,6 @@ class _ServiceCardState extends State<_ServiceCard> {
     );
   }
 }
-
 
 // =================== Confirmation Row ===================
 class _ConfirmRow extends StatelessWidget {

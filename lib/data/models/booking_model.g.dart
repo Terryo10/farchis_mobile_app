@@ -10,6 +10,9 @@ BookingModel _$BookingModelFromJson(Map<String, dynamic> json) => BookingModel(
   id: (json['id'] as num).toInt(),
   userId: (json['user_id'] as num).toInt(),
   service: ServiceModel.fromJson(json['service'] as Map<String, dynamic>),
+  vehicle: json['vehicle'] == null
+      ? null
+      : VehicleModel.fromJson(json['vehicle'] as Map<String, dynamic>),
   bookingDate: DateTime.parse(json['booking_date'] as String),
   bookingTime: json['booking_time'] as String,
   status: $enumDecode(_$BookingStatusEnumMap, json['status']),
@@ -35,6 +38,7 @@ Map<String, dynamic> _$BookingModelToJson(BookingModel instance) =>
       'id': instance.id,
       'user_id': instance.userId,
       'service': instance.service.toJson(),
+      'vehicle': instance.vehicle?.toJson(),
       'booking_date': instance.bookingDate.toIso8601String(),
       'booking_time': instance.bookingTime,
       'status': _$BookingStatusEnumMap[instance.status]!,

@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'service_model.dart';
 import 'scratch_card_model.dart';
+import 'vehicle_model.dart';
 
 part 'booking_model.g.dart';
 
@@ -15,6 +16,7 @@ class BookingModel {
   final int id;
   final int userId;
   final ServiceModel service;
+  final VehicleModel? vehicle;
   final DateTime bookingDate;
   final String bookingTime;
   final BookingStatus status;
@@ -32,6 +34,7 @@ class BookingModel {
     required this.id,
     required this.userId,
     required this.service,
+    this.vehicle,
     required this.bookingDate,
     required this.bookingTime,
     required this.status,
@@ -54,6 +57,7 @@ class BookingModel {
     int? id,
     int? userId,
     ServiceModel? service,
+    VehicleModel? vehicle,
     DateTime? bookingDate,
     String? bookingTime,
     BookingStatus? status,
@@ -71,6 +75,7 @@ class BookingModel {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       service: service ?? this.service,
+      vehicle: vehicle ?? this.vehicle,
       bookingDate: bookingDate ?? this.bookingDate,
       bookingTime: bookingTime ?? this.bookingTime,
       status: status ?? this.status,

@@ -3,6 +3,18 @@ import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/http_client.dart';
 
+class StripePaymentIntent {
+  final String clientSecret;
+  final String paymentIntentId;
+  final String status;
+
+  const StripePaymentIntent({
+    required this.clientSecret,
+    required this.paymentIntentId,
+    required this.status,
+  });
+}
+
 class PaymentRepository {
   final FarchisHttpClient client;
 
@@ -23,6 +35,27 @@ class PaymentRepository {
       return Result.success(
         response['data']['redirect_url'] ?? response['data']['browserurl'] ?? response['message'],
       );
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  /// Stripe's response shape from `/payments/initiate` is
+  /// `{client_secret, payment_intent_id, status}` — distinct from the
+  /// redirect-based gateways handled by [initiatePayment], so it gets its
+  /// own typed method rather than being squeezed into a `String` result.
+  Future<Result<StripePaymentIntent>> initiateStripePayment(int bookingId) async {
+    try {
+      final response = await client.post(
+        ApiConstants.initiatePayment,
+        body: {'booking_id': bookingId, 'gateway': 'stripe'},
+      );
+      final data = response['data'] as Map<String, dynamic>;
+      return Result.success(StripePaymentIntent(
+        clientSecret: data['client_secret'] as String,
+        paymentIntentId: data['payment_intent_id'] as String,
+        status: data['status'] as String,
+      ));
     } catch (e) {
       return _handleError(e);
     }
