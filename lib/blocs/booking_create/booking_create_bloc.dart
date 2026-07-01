@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../core/error/failures.dart';
 import '../../data/repositories/booking_repository.dart';
 import 'booking_create_event.dart';
 import 'booking_create_state.dart';
@@ -43,6 +45,27 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
     });
 
     on<SubmitBooking>((event, emit) async {
+      debugPrint('[BookingCreateBloc] SubmitBooking triggered');
+      debugPrint('[BookingCreateBloc]   service  = ${state.selectedService}');
+      debugPrint('[BookingCreateBloc]   vehicle  = ${state.selectedVehicle}');
+      debugPrint('[BookingCreateBloc]   date     = ${state.selectedDate}');
+      debugPrint('[BookingCreateBloc]   slot     = ${state.selectedSlot}');
+
+      // Guard: service must be selected before we hit the API.
+      if (state.selectedService == null) {
+        debugPrint('[BookingCreateBloc] ERROR: selectedService is null — cannot submit booking');
+        emit(BookingFailure(
+          Failure.unknown('No service selected. Please go back and select a service.'),
+          selectedService: state.selectedService,
+          selectedVehicle: state.selectedVehicle,
+          selectedDate: state.selectedDate,
+          selectedSlot: state.selectedSlot,
+          photos: state.photos,
+          notes: state.notes,
+        ));
+        return;
+      }
+
       emit(BookingSubmitting(
         selectedService: state.selectedService,
         selectedVehicle: state.selectedVehicle,
@@ -62,27 +85,35 @@ class BookingCreateBloc extends Bloc<BookingCreateEvent, BookingCreateState> {
         'notes': state.notes,
       };
 
+      debugPrint('[BookingCreateBloc] Sending payload: $payload');
+
       final result = await repository.createBooking(payload);
 
       result.when(
-        onSuccess: (booking) => emit(BookingSuccess(
-          booking,
-          selectedService: state.selectedService,
-          selectedVehicle: state.selectedVehicle,
-          selectedDate: state.selectedDate,
-          selectedSlot: state.selectedSlot,
-          photos: state.photos,
-          notes: state.notes,
-        )),
-        onFailure: (failure) => emit(BookingFailure(
-          failure,
-          selectedService: state.selectedService,
-          selectedVehicle: state.selectedVehicle,
-          selectedDate: state.selectedDate,
-          selectedSlot: state.selectedSlot,
-          photos: state.photos,
-          notes: state.notes,
-        )),
+        onSuccess: (booking) {
+          debugPrint('[BookingCreateBloc] SUCCESS: booking #${booking.id} created');
+          emit(BookingSuccess(
+            booking,
+            selectedService: state.selectedService,
+            selectedVehicle: state.selectedVehicle,
+            selectedDate: state.selectedDate,
+            selectedSlot: state.selectedSlot,
+            photos: state.photos,
+            notes: state.notes,
+          ));
+        },
+        onFailure: (failure) {
+          debugPrint('[BookingCreateBloc] FAILURE: ${failure.message}');
+          emit(BookingFailure(
+            failure,
+            selectedService: state.selectedService,
+            selectedVehicle: state.selectedVehicle,
+            selectedDate: state.selectedDate,
+            selectedSlot: state.selectedSlot,
+            photos: state.photos,
+            notes: state.notes,
+          ));
+        },
       );
     });
 

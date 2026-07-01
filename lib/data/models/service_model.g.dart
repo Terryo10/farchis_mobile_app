@@ -16,8 +16,8 @@ ServiceModel _$ServiceModelFromJson(Map<String, dynamic> json) => ServiceModel(
     json['category'],
     unknownValue: ServiceCategory.other,
   ),
-  price: (json['price'] as num).toDouble(),
-  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  price: (json['price'] as num?)?.toDouble(),
+  durationMinutes: (json['duration_minutes'] as num?)?.toInt(),
   isActive: json['is_active'] as bool,
   imageUrl: json['image'] as String?,
 );

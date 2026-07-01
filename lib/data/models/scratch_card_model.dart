@@ -8,19 +8,19 @@ enum PrizeType { discount, free_valet, bonus_points }
 @JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class ScratchCardModel {
   final int id;
-  final PrizeType prizeType;
-  final double prizeValue;
+  final PrizeType? prizeType;
+  final double? prizeValue;
   final bool isScratched;
   final DateTime? scratchedAt;
-  final DateTime expiresAt;
+  final DateTime? expiresAt;
 
   const ScratchCardModel({
     required this.id,
-    required this.prizeType,
-    required this.prizeValue,
+    this.prizeType,
+    this.prizeValue,
     required this.isScratched,
     this.scratchedAt,
-    required this.expiresAt,
+    this.expiresAt,
   });
 
   factory ScratchCardModel.fromJson(Map<String, dynamic> json) => _$ScratchCardModelFromJson(json);
