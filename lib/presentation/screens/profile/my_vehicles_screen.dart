@@ -46,7 +46,7 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(AppDimensions.lg),
             itemCount: state.vehicles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.md),
+            separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.md),
             itemBuilder: (context, index) {
               final vehicle = state.vehicles[index];
               return _VehicleCard(
